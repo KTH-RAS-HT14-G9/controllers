@@ -110,7 +110,7 @@ Matrix<double, nParams, 1> pid<nParams>::control(const Params& state,
     _cum_error += _error;
 
     if (dt > 0) // use pid
-        return _error.cwiseProduct(_kp) + _cum_error.cwiseProduct(_ki) + (_last_error - _error).cwiseProduct(_kd/dt);
+        return _error.cwiseProduct(_kp) + _cum_error.cwiseProduct(_ki) + (_error - _last_error).cwiseProduct(_kd/dt);
     else        // use only pi
         return _error.cwiseProduct(_kp) + _cum_error.cwiseProduct(_ki);
 }
