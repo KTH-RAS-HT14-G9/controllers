@@ -3,6 +3,7 @@
   <version>0.1.0</version>
   <description>The controllers metapackage</description>
   <url>https://github.com/KTH-RAS-HT14-G9/vision</url>
+  <license>BSD</license>
 
   <author email="tobias2@kth.se">Tobias Andersson</author>
   <author email="mmlosch@kth.se">Max Losch</author>
