@@ -1,7 +1,9 @@
 #ifndef PID_H
 #define PID_H
 
+#define EIGEN_NO_DEBUG
 #include <eigen3/Eigen/Core>
+#include <stdexcept>
 
 using namespace Eigen;
 
@@ -20,6 +22,24 @@ public:
         ,_ki(k_i)
         ,_kd(k_d)
     {
+        _iMax.setConstant(std::numeric_limits<double>::infinity());
+    }
+
+    /**
+      * @param i_constraints Defines an upper and lower limit for the i-Term.
+      *        Has to be greater than 0.
+      */
+    pid(const Params& k_p, const Params& k_i, const Params& k_d,
+        const Params& i_constraints )
+        :_kp(k_p)
+        ,_ki(k_i)
+        ,_kd(k_d)
+        ,_iMax(i_constraints)
+    {
+        for(int i = 0; i < nParams; ++i)
+            if (i_constraints(i,0) <= 0)
+                throw std::invalid_argument("pid::argument exception: coefficients in i_constraints should be greater than 0.");
+
     }
 
     /**
@@ -55,6 +75,8 @@ protected:
     Params _cum_error;
     Params _error;
     Params _last_error;
+
+    Params _iMax;
 };
 
 /**
@@ -107,7 +129,15 @@ Matrix<double, nParams, 1> pid<nParams>::control(const Params& state,
                                                  double dt)
 {
     _error = target - state;
-    _cum_error += _error;
+    _cum_error += (_error*dt);
+
+    // restrict integral term to given infimum and supremum
+    for(int i = 0; i < _cum_error.rows(); ++i) {
+        double sup = _iMax.coeff(i,0);
+        double inf = -sup;
+        _cum_error(i,0) = std::max(inf,  std::min(sup, _cum_error(i,0)));
+    }
+
 
     if (dt > 0) // use pid
         return _error.cwiseProduct(_kp) + _cum_error.cwiseProduct(_ki) + (_error - _last_error).cwiseProduct(_kd/dt);
@@ -121,16 +151,28 @@ Matrix<double, nParams, 1> pid<nParams>::control(const Params& state,
 class pid_1d : public pid<1>
 {
 public:
-    pid_1d(double k_p, double k_i, double k_d)
-        :pid<1>(pid<1>::Params(k_p), pid<1>::Params(k_i), pid<1>::Params(k_d))
+
+    pid_1d(double k_p, double k_i, double k_d, double i_constraint = std::numeric_limits<double>::infinity())
+        :pid<1>(Param(),Param(),Param())
     {
+        if (i_constraint <= 0.0)
+            throw std::invalid_argument("pid_1d::argument exception: coefficients in i_constraints should be greater than 0.");
+
+        //eigen has no constructor defined for Matrix<type,1,1>(value)
+        //define them this way:
+        _kp.setConstant(k_p);
+        _ki.setConstant(k_i);
+        _kd.setConstant(k_d);
+        _iMax.setConstant(i_constraint);
     }
 
     /**
       * Adapter function for pid<1>::control().
       */
     double control_1d(double state, double target, double dt) {
-        const pid<1>::Params& u = pid<1>::control(pid<1>::Params(state),pid<1>::Params(target),dt);
+        _state.setConstant(state);
+        _target.setConstant(target);
+        const Param u = pid<1>::control(_state,_target,dt);
         return u(0,0);
     }
 
@@ -141,6 +183,12 @@ public:
     void set_kp_1d(double k_p) { _kp(0,0) = k_p; }
     void set_ki_1d(double k_i) { _ki(0,0) = k_i; }
     void set_kd_1d(double k_d) { _kd(0,0) = k_d; }
+
+protected:
+    typedef pid<1>::Params Param;
+
+    Param _state;
+    Param _target;
 };
 
 #endif // PID_H
