@@ -24,7 +24,6 @@ public:
   						right_controller(right_kd, right_ki, right_kd)
 
 	{
-		
 		handle = ros::NodeHandle("");
 		initialise_pid_params();
 
@@ -78,12 +77,12 @@ public:
     	ros::param::get(d_r_key, right_kd);
     	ros::param::get(i_l_key, left_ki);
     	ros::param::get(i_r_key, right_ki);
-    	mc.left_controller.set_kp_1d(mc.left_kp);
-     	mc.left_controller.set_ki_1d(mc.left_ki);
-    	mc.left_controller.set_kd_1d(mc.left_kd);
-    	mc.right_controller.set_kp_1d(mc.right_kp);
-    	mc.right_controller.set_ki_1d(mc.right_ki);
-    	mc.right_controller.set_kd_1d(mc.right_kd);
+    	left_controller.set_kp_1d(left_kp);
+     	left_controller.set_ki_1d(left_ki);
+    	left_controller.set_kd_1d(left_kd);
+    	right_controller.set_kp_1d(right_kp);
+    	right_controller.set_ki_1d(right_ki);
+    	right_controller.set_kd_1d(right_kd);
 	}
 
 private:
