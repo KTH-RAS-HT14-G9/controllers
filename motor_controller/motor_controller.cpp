@@ -15,14 +15,46 @@ public:
   	static const double wheel_radius = 0.049; 
   	static const double wheel_distance = 0.21; 
 
+  	double left_kp; std::string p_l_key;
+	double right_kp; std::string p_r_key;
+
+	double left_kd;  std::string d_l_key;
+	double right_kd; std::string d_r_key;
+
+	double left_ki; std::string i_l_key;
+	double right_ki; std::string i_r_key;
+
+	pid_1d left_controller;
+  	pid_1d right_controller;
+
 	MotorController() : linear_velocity(0.0), angular_velocity(0.0), 
 						left_encoder_delta(0), right_encoder_delta(0),
 						left_pwm(0), right_pwm(0),
+						left_kp(3.4), right_kp(3.0),
+						left_kd(0.8), right_kd(0.8),
+						left_ki(0.06), right_ki(0.05),
 						left_controller(left_kp, left_ki, left_kd),
   						right_controller(right_kd, right_ki, right_kd)
+
 	{
+		p_l_key = "/pid/p_left";
+		p_r_key = "/pid/p_right";
+		d_l_key = "/pid/d_left";
+		d_r_key = "/pid/d_right";
+		i_l_key = "/pid/i_left";
+		i_r_key = "/pid/i_right";
 		
 		handle = ros::NodeHandle("");
+
+		handle.setParam(p_l_key,left_kp);
+   		handle.setParam(p_r_key,right_kp);
+
+    	handle.setParam(d_l_key,left_kd);
+    	handle.setParam(d_r_key,right_kd);
+
+    	handle.setParam(i_l_key,left_ki);
+    	handle.setParam(i_r_key,right_ki);
+
 		twist_subscriber = handle.subscribe("/motor_controller/twist", 1000, &MotorController::twistCallback, this);
 		encoder_subscriber = handle.subscribe("/arduino/encoders", 1000, &MotorController::encoderCallback, this);
 		pwm_publisher = handle.advertise<ras_arduino_msgs::PWM>("/arduino/pwm", 1000);
@@ -61,12 +93,12 @@ public:
 
 private:
 
-  	static const double left_kp = 1.0;
+  	/*static const double left_kp = 1.0;
   	static const double left_ki = 0.0;
   	static const double left_kd = 0.0;
   	static const double right_kp = 1.0;
   	static const double right_ki = 0.0;
-  	static const double right_kd = 0.0;
+  	static const double right_kd = 0.0;*/
 
   	double linear_velocity;
   	double angular_velocity;
@@ -79,8 +111,7 @@ private:
 	ros::Subscriber twist_subscriber;
 	ros::Subscriber encoder_subscriber;
 	ros::Publisher pwm_publisher;
-	pid_1d left_controller;
-  	pid_1d right_controller;
+	
 
 	double estimated_angular_velocity(int encoder_delta) 
 	{
@@ -112,12 +143,27 @@ int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "motor_controller");
 	
-	MotorController motor_controller;
-	ros::Rate loop_rate(motor_controller.control_frequency);
+	MotorController mc;
+	ros::Rate loop_rate(mc.control_frequency);
 
-	while(motor_controller.ok()) {
-		motor_controller.updatePWM();
-		motor_controller.publishPWM();
+	while(mc.ok()) {
+		ros::param::get(mc.p_l_key, mc.left_kp);
+    	ros::param::get(mc.p_r_key, mc.right_kp);
+    	ros::param::get(mc.d_l_key, mc.left_kd);
+    	ros::param::get(mc.d_r_key, mc.right_kd);
+    	ros::param::get(mc.i_l_key, mc.left_ki);
+    	ros::param::get(mc.i_r_key, mc.right_ki);
+
+    	mc.left_controller.set_kp_1d(mc.left_kp);
+    	mc.left_controller.set_ki_1d(mc.left_ki);
+    	mc.left_controller.set_kd_1d(mc.left_kd);
+
+    	mc.right_controller.set_kp_1d(mc.right_kp);
+    	mc.right_controller.set_ki_1d(mc.right_ki);
+    	mc.right_controller.set_kd_1d(mc.right_kd);
+
+		mc.updatePWM();
+		mc.publishPWM();
 		ros::spinOnce();
 		loop_rate.sleep();
 	}
