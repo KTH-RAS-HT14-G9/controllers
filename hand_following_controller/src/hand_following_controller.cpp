@@ -77,7 +77,7 @@ int main(int argc, char **argv)
   float count = 0;
   while (ros::ok())
   {
-    if (distance > 0.3)
+    if (!isnan(distance))
     {
         twist.linear.x = 0.1;
     } else
