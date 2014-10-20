@@ -70,7 +70,7 @@ public:
 		return handle.ok();
 	}
 
-	void get_pid_params() 
+	void update_pid_params() 
 	{
 		ros::param::get(p_l_key, left_kp);
     	ros::param::get(p_r_key, right_kp);
@@ -78,6 +78,12 @@ public:
     	ros::param::get(d_r_key, right_kd);
     	ros::param::get(i_l_key, left_ki);
     	ros::param::get(i_r_key, right_ki);
+    	mc.left_controller.set_kp_1d(mc.left_kp);
+     	mc.left_controller.set_ki_1d(mc.left_ki);
+    	mc.left_controller.set_kd_1d(mc.left_kd);
+    	mc.right_controller.set_kp_1d(mc.right_kp);
+    	mc.right_controller.set_ki_1d(mc.right_ki);
+    	mc.right_controller.set_kd_1d(mc.right_kd);
 	}
 
 private:
@@ -157,7 +163,7 @@ int main(int argc, char **argv)
 
 	while(mc.ok()) 
 	{	
-		mc.get_pid_params();
+		mc.update_pid_params();
 		mc.updatePWM();
 		mc.publishPWM();
 		ros::spinOnce();
