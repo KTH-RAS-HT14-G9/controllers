@@ -26,6 +26,7 @@ public:
 	{
 		handle = ros::NodeHandle("");
 		initialise_pid_params();
+		update_pid_params();
 
 		twist_subscriber = handle.subscribe("/motor_controller/twist", 1000, &MotorController::twistCallback, this);
 		encoder_subscriber = handle.subscribe("/arduino/encoders", 1000, &MotorController::encoderCallback, this);
@@ -114,18 +115,29 @@ private:
 		  return ((double) encoder_delta)*2.0*M_PI*control_frequency/ticks_per_rev;
 	}
 
+	/*
+	TODO
+
+	* find the pwm value where the robot starts moving
+	* turn off constant boost after a certain speed
+	*
+
+	*/
+
 	void updateLeftPWM() 
 	{
 		double estimated = estimated_angular_velocity(left_encoder_delta);
 		double target = target_angular_velocity();
-		left_pwm = (int) left_controller.control_1d(estimated, target, 1.0/control_frequency);
+		left_pwm = 33 + (int) left_controller.control_1d(estimated, target, 1.0/control_frequency);
+		left_pwm = left_pwm > 255 ? 255: left_pwm;
 	}
 
 	void updateRightPWM()
 	{
 		double estimated = estimated_angular_velocity(right_encoder_delta);
 		double target = target_angular_velocity();
-		right_pwm = (int) right_controller.control_1d(estimated, target, 1.0/control_frequency);
+		right_pwm = 30 + (int) right_controller.control_1d(estimated, target, 1.0/control_frequency);
+		right_pwm = right_pwm > 255 ? 255: right_pwm;
 	}
 
 	double target_angular_velocity() const
@@ -135,20 +147,20 @@ private:
 
 	void initialise_pid_params() 
 	{
-		left_kp = 5.45; p_l_key = "/pid/p_left";
+		left_kp = 5.0; p_l_key = "/pid/p_left";
 		left_ki = 0.0; i_l_key = "/pid/i_left";
 		left_kd = 0.0; d_l_key = "/pid/d_left";
 		
-		left_kp = 5.0; p_r_key = "/pid/p_right";
+		right_kp = 5.12; p_r_key = "/pid/p_right";
 		right_ki = 0.0; i_r_key = "/pid/i_right";
 		right_kd = 0.0; d_r_key = "/pid/d_right";
 		
-		handle.setParam(p_l_key,left_kp);
+		/*handle.setParam(p_l_key,left_kp);
    		handle.setParam(p_r_key,right_kp);
     	handle.setParam(d_l_key,left_kd);
     	handle.setParam(d_r_key,right_kd);
     	handle.setParam(i_l_key,left_ki);
-    	handle.setParam(i_r_key,right_ki);
+    	handle.setParam(i_r_key,right_ki);*/
 	}
 
 };
