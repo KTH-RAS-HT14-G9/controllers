@@ -119,14 +119,14 @@ private:
 	{
 		double estimated = estimated_angular_velocity(left_encoder_delta);
 		double target = target_angular_velocity();
-		left_pwm += (int) left_controller.control_1d(estimated, target, 1.0/control_frequency);
+		left_pwm = (int) left_controller.control_1d(estimated, target, 1.0/control_frequency);
 	}
 
 	void updateRightPWM()
 	{
 		double estimated = estimated_angular_velocity(right_encoder_delta);
 		double target = target_angular_velocity();
-		right_pwm += (int) right_controller.control_1d(estimated, target, 1.0/control_frequency);
+		right_pwm = (int) right_controller.control_1d(estimated, target, 1.0/control_frequency);
 	}
 
 	double target_angular_velocity() const
