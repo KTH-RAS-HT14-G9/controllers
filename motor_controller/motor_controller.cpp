@@ -1,8 +1,9 @@
-#include <ros/ros.h>
+ #include <ros/ros.h>
 #include <ras_arduino_msgs/PWM.h>
 #include <ras_arduino_msgs/Encoders.h>
 #include <geometry_msgs/Twist.h>
 #include <math.h>
+#include <stdlib.h> 
 #include "../etc/pid.h"
 
 class MotorController 
@@ -17,12 +18,7 @@ public:
 
 	MotorController() : linear_velocity(0.0), angular_velocity(0.0), 
 						left_encoder_delta(0), right_encoder_delta(0),
-						left_pwm(0), right_pwm(0),
-						left_kp(0.0), left_ki(0.0), left_kd(0.0),
-						right_kp(0.0), right_ki(0.0), right_kd(0.0),
-						left_controller(left_kp, left_ki, left_kd),
-  						right_controller(right_kd, right_ki, right_kd)
-
+						left_pwm(0), right_pwm(0)
 	{
 		handle = ros::NodeHandle("");
 		initialise_pid_params();
@@ -56,9 +52,11 @@ public:
 		double estimated_left = estimated_angular_velocity(left_encoder_delta);
 		double estimated_right = estimated_angular_velocity(right_encoder_delta);
 		double target = target_angular_velocity();
+		
 		ROS_INFO("current angvel l: %f, r: %f", estimated_left, estimated_right);
 		ROS_INFO("target angvel: %f", target);
 		ROS_INFO("publishing l: %d, r: %d", left_pwm, right_pwm);
+
 		ras_arduino_msgs::PWM pwm;
 		pwm.PWM1 = left_pwm;
 		pwm.PWM2 = right_pwm;
@@ -78,12 +76,15 @@ public:
     	ros::param::get(d_r_key, right_kd);
     	ros::param::get(i_l_key, left_ki);
     	ros::param::get(i_r_key, right_ki);
-    	left_controller.set_kp_1d(left_kp);
-     	left_controller.set_ki_1d(left_ki);
-    	left_controller.set_kd_1d(left_kd);
-    	right_controller.set_kp_1d(right_kp);
-    	right_controller.set_ki_1d(right_ki);
-    	right_controller.set_kd_1d(right_kd);
+    	left_controller->set_kp_1d(left_kp);
+     	left_controller->set_ki_1d(left_ki);
+    	left_controller->set_kd_1d(left_kd);
+    	right_controller->set_kp_1d(right_kp);
+    	right_controller->set_ki_1d(right_ki);
+    	right_controller->set_kd_1d(right_kd);
+
+    	ros::param::get(left_const_key, left_const);
+    	ros::param::get(right_const_key, right_const);
 	}
 
 private:
@@ -94,6 +95,8 @@ private:
 	double right_kd; std::string d_r_key;
 	double left_ki; std::string i_l_key;
 	double right_ki; std::string i_r_key;
+	int left_const; std::string left_const_key;
+	int right_const; std::string right_const_key;
 
   	double linear_velocity;
   	double angular_velocity;
@@ -107,28 +110,19 @@ private:
 	ros::Subscriber encoder_subscriber;
 	ros::Publisher pwm_publisher;
 	
-	pid_1d left_controller;
-  	pid_1d right_controller;
+	pid_1d *left_controller;
+  	pid_1d *right_controller;
 
 	double estimated_angular_velocity(int encoder_delta) const
 	{
 		  return ((double) encoder_delta)*2.0*M_PI*control_frequency/ticks_per_rev;
 	}
 
-	/*
-	TODO
-
-	* find the pwm value where the robot starts moving
-	* turn off constant boost after a certain speed
-	*
-
-	*/
-
 	void updateLeftPWM() 
 	{
 		double estimated = estimated_angular_velocity(left_encoder_delta);
 		double target = target_angular_velocity();
-		left_pwm = 33 + (int) left_controller.control_1d(estimated, target, 1.0/control_frequency);
+		left_pwm = left_const + (int) left_controller->control_1d(estimated, target, 1.0/control_frequency);
 		left_pwm = left_pwm > 255 ? 255: left_pwm;
 	}
 
@@ -136,13 +130,27 @@ private:
 	{
 		double estimated = estimated_angular_velocity(right_encoder_delta);
 		double target = target_angular_velocity();
-		right_pwm = 30 + (int) right_controller.control_1d(estimated, target, 1.0/control_frequency);
+		right_pwm = right_const + (int) right_controller->control_1d(estimated, target, 1.0/control_frequency);
 		right_pwm = right_pwm > 255 ? 255: right_pwm;
 	}
 
 	double target_angular_velocity() const
 	{
 		return (linear_velocity - wheel_distance/2.0*angular_velocity)/wheel_radius;
+	}
+
+	int get_left_constant() {
+		return get_constant(left_const, estimated_angular_velocity(left_encoder_delta));
+	}
+
+	int get_right_constant() {
+		return get_constant(right_const, estimated_angular_velocity(right_encoder_delta));
+	}
+
+	int get_constant(int max_constant, int current_ang_vel) {
+		if(abs(current_ang_vel) >= abs(target_angular_velocity()))
+			return 0;
+		return max_constant*(target_angular_velocity() - current_ang_vel)/target_angular_velocity();
 	}
 
 	void initialise_pid_params() 
@@ -154,13 +162,19 @@ private:
 		right_kp = 5.12; p_r_key = "/pid/p_right";
 		right_ki = 0.0; i_r_key = "/pid/i_right";
 		right_kd = 0.0; d_r_key = "/pid/d_right";
+		left_const = 70; left_const_key = "/pid/left_const";
+		right_const = 60; right_const_key = "/pid/right_const";
 		
-		/*handle.setParam(p_l_key,left_kp);
+		// first time only
+
+		handle.setParam(p_l_key,left_kp);
    		handle.setParam(p_r_key,right_kp);
     	handle.setParam(d_l_key,left_kd);
     	handle.setParam(d_r_key,right_kd);
     	handle.setParam(i_l_key,left_ki);
-    	handle.setParam(i_r_key,right_ki);*/
+    	handle.setParam(i_r_key,right_ki);
+    	handle.setParam(left_const_key, left_const);
+    	handle.setParam(right_const_key, right_const);
 	}
 
 };
