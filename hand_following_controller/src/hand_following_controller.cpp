@@ -2,6 +2,7 @@
 #include "geometry_msgs/Twist.h"
 #include "geometry_msgs/Vector3.h"
 #include "std_msgs/Float64.h"
+#include "../../etc/pid.h"
 
 /**
   * Class that will handle the distance read by the camera
@@ -65,11 +66,14 @@ int main(int argc, char **argv)
    * a unique string for each message.
    */
   float count = 0;
+  double state;
+  double k_p = 0.4;
+  double target = 0.5;
   while (ros::ok())
   {
-    if (!isnan(Distance::getValue()))
+    if (!isnan(state=Distance::getValue()))
     {
-        twist.linear.x = 0.2;
+        twist.linear.x = -pd::P_control(k_p,state,target);
     } else
     {
         twist.linear.x = 0;
