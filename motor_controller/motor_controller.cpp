@@ -18,11 +18,18 @@ public:
 
 	MotorController() : linear_velocity(0.0), angular_velocity(0.0), 
 						left_encoder_delta(0), right_encoder_delta(0),
-						left_pwm(0), right_pwm(0)
+						left_pwm(0), right_pwm(0),
+						left_kp(0), left_ki(0), left_kd(0),
+						right_kp(0), right_ki(0), right_kd(0),
+						left_controller(left_kp, left_ki, left_kd),
+						right_controller(right_kp, right_ki, right_kd)
 	{
 		handle = ros::NodeHandle("");
 		initialise_pid_params();
 		update_pid_params();
+
+		//*left_controller = pid_1d(left_kp, left_ki, left_kd);
+		//*right_controller = pid_1d(right_kp, right_ki, right_kd);
 
 		twist_subscriber = handle.subscribe("/motor_controller/twist", 1000, &MotorController::twistCallback, this);
 		encoder_subscriber = handle.subscribe("/arduino/encoders", 1000, &MotorController::encoderCallback, this);
@@ -51,10 +58,11 @@ public:
 	{	
 		double estimated_left = estimated_angular_velocity(left_encoder_delta);
 		double estimated_right = estimated_angular_velocity(right_encoder_delta);
-		double target = target_angular_velocity();
+		double target_left = left_target_angular_velocity();
+		double target_right = right_target_angular_velocity();
 		
 		ROS_INFO("current angvel l: %f, r: %f", estimated_left, estimated_right);
-		ROS_INFO("target angvel: %f", target);
+		ROS_INFO("target angvel l:%f, r:%f", target_left, target_right);
 		ROS_INFO("publishing l: %d, r: %d", left_pwm, right_pwm);
 
 		ras_arduino_msgs::PWM pwm;
@@ -76,12 +84,12 @@ public:
     	ros::param::get(d_r_key, right_kd);
     	ros::param::get(i_l_key, left_ki);
     	ros::param::get(i_r_key, right_ki);
-    	left_controller->set_kp_1d(left_kp);
-     	left_controller->set_ki_1d(left_ki);
-    	left_controller->set_kd_1d(left_kd);
-    	right_controller->set_kp_1d(right_kp);
-    	right_controller->set_ki_1d(right_ki);
-    	right_controller->set_kd_1d(right_kd);
+    	left_controller.set_kp_1d(left_kp);
+     	left_controller.set_ki_1d(left_ki);
+    	left_controller.set_kd_1d(left_kd);
+    	right_controller.set_kp_1d(right_kp);
+    	right_controller.set_ki_1d(right_ki);
+    	right_controller.set_kd_1d(right_kd);
 
     	ros::param::get(left_const_key, left_const);
     	ros::param::get(right_const_key, right_const);
@@ -110,63 +118,73 @@ private:
 	ros::Subscriber encoder_subscriber;
 	ros::Publisher pwm_publisher;
 	
-	pid_1d *left_controller;
-  	pid_1d *right_controller;
+	pid_1d left_controller;
+  	pid_1d right_controller;
 
 	double estimated_angular_velocity(int encoder_delta) const
 	{
-		  return ((double) encoder_delta)*2.0*M_PI*control_frequency/ticks_per_rev;
+		  return -((double) encoder_delta)*2.0*M_PI*control_frequency/ticks_per_rev;
 	}
 
 	void updateLeftPWM() 
 	{
 		double estimated = estimated_angular_velocity(left_encoder_delta);
-		double target = target_angular_velocity();
-		left_pwm = left_const + (int) left_controller->control_1d(estimated, target, 1.0/control_frequency);
+		double target = left_target_angular_velocity();
+		left_pwm = get_left_constant() + (int) left_controller.control_1d(estimated, target, 1.0/control_frequency);
 		left_pwm = left_pwm > 255 ? 255: left_pwm;
 	}
 
 	void updateRightPWM()
 	{
 		double estimated = estimated_angular_velocity(right_encoder_delta);
-		double target = target_angular_velocity();
-		right_pwm = right_const + (int) right_controller->control_1d(estimated, target, 1.0/control_frequency);
+		double target = right_target_angular_velocity();
+		right_pwm = get_right_constant() + (int) right_controller.control_1d(estimated, target, 1.0/control_frequency);
 		right_pwm = right_pwm > 255 ? 255: right_pwm;
 	}
 
-	double target_angular_velocity() const
+	double left_target_angular_velocity() const
 	{
 		return (linear_velocity - wheel_distance/2.0*angular_velocity)/wheel_radius;
 	}
 
+	double right_target_angular_velocity() const 
+	{
+		return (linear_velocity + wheel_distance/2.0*angular_velocity)/wheel_radius;
+	}
+
+
 	int get_left_constant() {
-		return get_constant(left_const, estimated_angular_velocity(left_encoder_delta));
+		return get_constant(left_pwm, left_const, estimated_angular_velocity(left_encoder_delta), left_target_angular_velocity());
 	}
 
 	int get_right_constant() {
-		return get_constant(right_const, estimated_angular_velocity(right_encoder_delta));
+		return get_constant(right_pwm, right_const, estimated_angular_velocity(right_encoder_delta), right_target_angular_velocity());
 	}
 
-	int get_constant(int max_constant, int current_ang_vel) {
-		if(abs(current_ang_vel) >= abs(target_angular_velocity()))
+	int get_constant(int pwm, int max_constant, int current_ang_vel, int target_ang_vel) {
+		/*if(pwm < max_constant && current_ang_vel*wheel_radius <= 0.2 && linear_velocity > 0 )
+			return max_constant - pwm;
+		return 0;*/
+		return 0;
+		/*if(abs(current_ang_vel) >= abs(target_ang_vel) || current_ang_vel > target_ang_vel)
 			return 0;
-		return max_constant*(target_angular_velocity() - current_ang_vel)/target_angular_velocity();
+		return max_constant*(target_ang_vel - current_ang_vel)/target_ang_vel;*/
 	}
 
 	void initialise_pid_params() 
 	{
 		left_kp = 5.0; p_l_key = "/pid/p_left";
-		left_ki = 0.0; i_l_key = "/pid/i_left";
-		left_kd = 0.0; d_l_key = "/pid/d_left";
+		left_ki = 2.0; i_l_key = "/pid/i_left";
+		left_kd = 0.5; d_l_key = "/pid/d_left";
 		
-		right_kp = 5.12; p_r_key = "/pid/p_right";
-		right_ki = 0.0; i_r_key = "/pid/i_right";
-		right_kd = 0.0; d_r_key = "/pid/d_right";
+		right_kp = 5.0; p_r_key = "/pid/p_right";
+		right_ki = 2.0; i_r_key = "/pid/i_right";
+		right_kd = 0.5; d_r_key = "/pid/d_right";
 		left_const = 70; left_const_key = "/pid/left_const";
 		right_const = 60; right_const_key = "/pid/right_const";
 		
 		// first time only
-
+/*
 		handle.setParam(p_l_key,left_kp);
    		handle.setParam(p_r_key,right_kp);
     	handle.setParam(d_l_key,left_kd);
@@ -174,7 +192,7 @@ private:
     	handle.setParam(i_l_key,left_ki);
     	handle.setParam(i_r_key,right_ki);
     	handle.setParam(left_const_key, left_const);
-    	handle.setParam(right_const_key, right_const);
+    	handle.setParam(right_const_key, right_const);*/
 	}
 
 };
