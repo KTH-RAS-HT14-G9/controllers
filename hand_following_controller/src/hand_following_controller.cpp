@@ -67,7 +67,7 @@ int main(int argc, char **argv)
    */
   float count = 0;
   double state;
-  double k_p = 0.4;
+  double k_p = 4;
   double target = 0.5;
   while (ros::ok())
   {
