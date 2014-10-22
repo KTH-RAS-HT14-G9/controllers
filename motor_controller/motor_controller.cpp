@@ -154,11 +154,16 @@ private:
 
 
 	int get_left_constant() {
-		return get_constant(left_pwm, left_const, estimated_angular_velocity(left_encoder_delta), left_target_angular_velocity());
+		if(linear_velocity > 0)
+		return left_const;//get_constant(left_pwm, left_const, estimated_angular_velocity(left_encoder_delta), left_target_angular_velocity());
+return 0;
 	}
 
 	int get_right_constant() {
-		return get_constant(right_pwm, right_const, estimated_angular_velocity(right_encoder_delta), right_target_angular_velocity());
+		if(linear_velocity > 0)
+		return right_const;//get_constant(right_pwm, right_const, estimated_angular_velocity(right_encoder_delta), right_target_angular_velocity());
+return 0;
+	
 	}
 
 	int get_constant(int pwm, int max_constant, int current_ang_vel, int target_ang_vel) {
@@ -173,19 +178,19 @@ private:
 
 	void initialise_pid_params() 
 	{
-		left_kp = 5.0; p_l_key = "/pid/p_left";
-		left_ki = 2.0; i_l_key = "/pid/i_left";
-		left_kd = 0.5; d_l_key = "/pid/d_left";
+		left_kp = 6.0; p_l_key = "/pid/p_left";
+		left_ki = 0.0; i_l_key = "/pid/i_left";
+		left_kd = 0.0; d_l_key = "/pid/d_left";
 		
 		right_kp = 5.0; p_r_key = "/pid/p_right";
-		right_ki = 2.0; i_r_key = "/pid/i_right";
-		right_kd = 0.5; d_r_key = "/pid/d_right";
-		left_const = 70; left_const_key = "/pid/left_const";
-		right_const = 60; right_const_key = "/pid/right_const";
+		right_ki = 0.0; i_r_key = "/pid/i_right";
+		right_kd = 0.0; d_r_key = "/pid/d_right";
+		left_const = 47; left_const_key = "/pid/left_const";
+		right_const = 42; right_const_key = "/pid/right_const";
 		
 		// first time only
-/*
-		handle.setParam(p_l_key,left_kp);
+
+/*		handle.setParam(p_l_key,left_kp);
    		handle.setParam(p_r_key,right_kp);
     	handle.setParam(d_l_key,left_kd);
     	handle.setParam(d_r_key,right_kd);

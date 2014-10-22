@@ -1,31 +1,28 @@
 #include "ros/ros.h"
 #include "geometry_msgs/Twist.h"
 #include "geometry_msgs/Vector3.h"
-#include <sstream>
-#include <math.h>
+#include "std_msgs/Float64.h"
 
-//double distance;
+double distance;
 
 /**
   * Class that will handle the distance read by the camera
-  */
+ 
 class Distance {
-    static double value;
 public:
-    static void setValue(const double newValue);
-    static double getvalue();
+	static double value;
 };
 
-static void Distance::setValue(const double newValue)
+void Distance::setValue(double newValue)
 {
-    value = newValue;
-    return;
+    double Distance::value = newValue;
 }
 
-static void Distance::getvalue()
+double Distance::getvalue()
 {
+	double Distance::value;
     return value;
-}
+}*/
 
 
 
@@ -36,7 +33,7 @@ static void Distance::getvalue()
  */
 void cameraCallback(const std_msgs::Float64 value)
 {
-    Distance.setValue(value);
+	distance = value.data;
 }
 
 
@@ -64,7 +61,7 @@ int main(int argc, char **argv)
    * Message to send
    */
   geometry_msgs::Twist twist;
-  Distance.setValue(0);
+  distance = 0;
 
   twist.linear.x = 0;  //linear velocity
   twist.linear.y = 0;
@@ -80,7 +77,7 @@ int main(int argc, char **argv)
   float count = 0;
   while (ros::ok())
   {
-    if (Distance.getvalue() > 0.3)
+    if (!isnan(distance))
     {
         twist.linear.x = 0.1;
     } else
