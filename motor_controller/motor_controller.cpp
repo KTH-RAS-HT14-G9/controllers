@@ -155,13 +155,18 @@ private:
 
 	int get_left_constant() {
 		if(linear_velocity > 0)
-		return left_const;//get_constant(left_pwm, left_const, estimated_angular_velocity(left_encoder_delta), left_target_angular_velocity());
+		return left_const;
+		if(linear_velocity < 0)
+			return -right_const;
+//get_constant(left_pwm, left_const, estimated_angular_velocity(left_encoder_delta), left_target_angular_velocity());
 return 0;
 	}
 
 	int get_right_constant() {
 		if(linear_velocity > 0)
 		return right_const;//get_constant(right_pwm, right_const, estimated_angular_velocity(right_encoder_delta), right_target_angular_velocity());
+		if(linear_velocity < 0)
+			return -left_const;
 return 0;
 	
 	}

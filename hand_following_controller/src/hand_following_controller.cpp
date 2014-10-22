@@ -34,7 +34,7 @@ int main(int argc, char **argv)
   /*
    * Init the node
    */
-  ros::init(argc, argv, "line_cartesian_controller");
+  ros::init(argc, argv, "hand_following_controller");
 
   ros::NodeHandle n;
 
@@ -67,7 +67,7 @@ int main(int argc, char **argv)
    */
   float count = 0;
   double state;
-  double k_p = 4;
+  double k_p = 2;
   double target = 0.5;
   while (ros::ok())
   {
