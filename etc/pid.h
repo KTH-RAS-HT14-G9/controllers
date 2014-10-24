@@ -138,11 +138,16 @@ Matrix<double, nParams, 1> pid<nParams>::control(const Params& state,
         _cum_error(i,0) = std::max(inf,  std::min(sup, _cum_error(i,0)));
     }
 
+    Params result;
 
     if (dt > 0) // use pid
-        return _error.cwiseProduct(_kp) + _cum_error.cwiseProduct(_ki) + (_error - _last_error).cwiseProduct(_kd/dt);
+        result = _error.cwiseProduct(_kp) + _cum_error.cwiseProduct(_ki) + (_error - _last_error).cwiseProduct(_kd/dt);
     else        // use only pi
-        return _error.cwiseProduct(_kp) + _cum_error.cwiseProduct(_ki);
+        result = _error.cwiseProduct(_kp) + _cum_error.cwiseProduct(_ki);
+
+    _last_error = _error;
+
+    return result;
 }
 
 //------------------------------------------------------------------------------
