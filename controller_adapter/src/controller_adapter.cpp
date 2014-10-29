@@ -1,26 +1,8 @@
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
+#include "topic_subscriber.h"
 
-
-class TopicSubscriber {
-
-public:
-    TopicSubscriber(ros::NodeHandle& handle, const std::string& topic, int queue_size=100)
-    {
-        handle.subscribe(topic, queue_size, &TopicSubscriber::callback, this);
-    }
-
-    geometry_msgs::Twist get_twist() { return _twist; }
-
-private:
-
-    geometry_msgs::Twist _twist;
-
-    void callback(const geometry_msgs::TwistConstPtr& data) {
-        _twist = *data;
-    }
-};
-
+const double PUBLISH_FREQUENCY = 10.0;
 
 geometry_msgs::Twist _twist;
 
@@ -29,12 +11,11 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "controller_adapter");
 
     ros::NodeHandle nh;
-    ros::Publisher pub = nh.advertise<geometry_msgs::Twist>("/motor_controller/twist", 1000);
-    ros::Rate loop_rate(10);
-
+    ros::Publisher pub = nh.advertise<geometry_msgs::Twist>("/motor_controller/twist", 1);
+    ros::Rate loop_rate(PUBLISH_FREQUENCY);
 
     TopicSubscriber subscribers[] = {
-        TopicSubscriber(nh,"/controller/twist"),
+        TopicSubscriber(nh,"/controller/forward/twist",1),
     };
     int nSubscribers = sizeof(subscribers)/sizeof(TopicSubscriber);
 
