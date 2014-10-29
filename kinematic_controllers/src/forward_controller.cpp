@@ -35,7 +35,7 @@ int main(int argc, char **argv)
 
     geometry_msgs::Twist twist;
 
-    while (ros::ok()) {
+    while (n.ok()) {
 
         n.getParamCached(_kp_key, _kp);
 
