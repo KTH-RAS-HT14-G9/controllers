@@ -59,7 +59,7 @@ void send_done_message(bool flag, ros::Publisher& publisher) {
     publisher.publish(done);
 }
 
-double perform_rotation(double w)
+double update_angular_velocity(double w)
 {
     int32_t state = _target(0) - _encoders(0);
     return w+pd::P_control(_kp, (double)state, 0.0);
@@ -92,7 +92,7 @@ int main(int argc, char **argv)
         {
             update_params();
 
-            w = perform_rotation(w);
+            w = update_angular_velocity(w);
 
             //stop rotating when the angular velocity is stabilized
             if (std::abs(w - w_last)/dt < _convergence_threshold)
