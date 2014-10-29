@@ -104,7 +104,8 @@ include_directories(
 
 ## Declare a cpp executable
 # add_executable(kinematic_controllers_node src/kinematic_controllers_node.cpp)
-add_executable(forward_controller_node src/forward_controller.cpp)
+add_executable(forward_controller src/forward_controller.cpp)
+add_executable(turn_controller src/turn_controller.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -112,7 +113,10 @@ add_executable(forward_controller_node src/forward_controller.cpp)
 #add_dependencies(forward_controller kinematic_controllers_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(forward_controller_node
+target_link_libraries(forward_controller
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(turn_controller
   ${catkin_LIBRARIES}
 )
 
