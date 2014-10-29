@@ -2,9 +2,18 @@
 #include <geometry_msgs/Twist.h>
 #include "topic_subscriber.h"
 
+//------------------------------------------------------------------------------
+// Constants
+
 const double PUBLISH_FREQUENCY = 10.0;
 
+//------------------------------------------------------------------------------
+// Member
+
 geometry_msgs::Twist _twist;
+
+//------------------------------------------------------------------------------
+// Entry point
 
 int main(int argc, char **argv)
 {
@@ -32,6 +41,8 @@ int main(int argc, char **argv)
         for(int i = 0; i < nSubscribers; ++i) {
 
             const geometry_msgs::Twist& twist = subscribers[i].get_twist();
+
+            //combine the twists blindly
 
             _twist.angular.x += twist.angular.x;
             _twist.angular.y += twist.angular.y;

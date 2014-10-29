@@ -4,13 +4,22 @@
 #include <std_msgs/Bool.h>
 #include <../etc/pid.h>
 
+//------------------------------------------------------------------------------
+// Constants
+
 const double PUBLISH_FREQUENCY = 10.0;
 const double DEFAULT_VELOCITY = 0.5;
+
+//------------------------------------------------------------------------------
+// Member
 
 double _velocity = DEFAULT_VELOCITY;
 bool _active;
 
 double _kp = 1.0; std::string _kp_key="/controller/forward/kp";
+
+//------------------------------------------------------------------------------
+// Callbacks
 
 void callback_forward_velocity(const std_msgs::Float64ConstPtr& vel) {
     _velocity = vel->data;
@@ -19,6 +28,9 @@ void callback_forward_velocity(const std_msgs::Float64ConstPtr& vel) {
 void callback_activate(const std_msgs::BoolConstPtr& val) {
     _active = val->data;
 }
+
+//------------------------------------------------------------------------------
+// Entry point
 
 int main(int argc, char **argv)
 {
