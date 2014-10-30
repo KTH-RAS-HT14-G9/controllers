@@ -25,6 +25,7 @@ int main(int argc, char **argv)
 
     TopicSubscriber subscribers[] = {
         TopicSubscriber(nh,"/controller/forward/twist",1),
+        TopicSubscriber(nh,"/controller/turn/twist",1)
     };
     int nSubscribers = sizeof(subscribers)/sizeof(TopicSubscriber);
 
