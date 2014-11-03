@@ -183,13 +183,14 @@ return 0;
 
 	void initialise_pid_params() 
 	{
-		left_kp = 6.0; p_l_key = "/pid/p_left";
-		left_ki = 0.0; i_l_key = "/pid/i_left";
-		left_kd = 0.0; d_l_key = "/pid/d_left";
+		left_kp = 13.3; p_l_key = "/pid/p_left";
+		left_ki = 1.0; i_l_key = "/pid/i_left";
+		left_kd = 0.1; d_l_key = "/pid/d_left";
 		
-		right_kp = 5.0; p_r_key = "/pid/p_right";
-		right_ki = 0.0; i_r_key = "/pid/i_right";
-		right_kd = 0.0; d_r_key = "/pid/d_right";
+		//12.75
+		right_kp = 11.0; p_r_key = "/pid/p_right";
+		right_ki = 1.0; i_r_key = "/pid/i_right";
+		right_kd = 0.1; d_r_key = "/pid/d_right";
 		left_const = 47; left_const_key = "/pid/left_const";
 		right_const = 42; right_const_key = "/pid/right_const";
 		
