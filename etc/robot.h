@@ -19,6 +19,19 @@ namespace prop {
     const double max_rot_velocity = M_PI/4.0;
 }
 
+namespace ir {
+    const int id_front_left = 0;
+    const int id_front_right = 1;
+    const int id_rear_left = 2;
+    const int id_rear_right = 3;
+    
+    //in m
+    const double offset_front_left = dim::robot_diameter/2.0 - 0.023;
+    const double offset_front_right = dim::robot_diameter/2.0 - 0.024;
+    const double offset_rear_left = dim::robot_diameter/2.0 - 0.034;
+    const double offset_rear_right = dim::robot_diameter/2.0 - 0.032;
+}
+
 /**
   * Calculates the number of ticks per wheel to achieve the desired rotation.
   * @param rot Desired rotation in degrees
