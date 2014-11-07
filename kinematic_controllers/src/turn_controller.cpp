@@ -17,11 +17,13 @@ const double PUBLISH_FREQUENCY = 10.0;
 
 char _active_cmd = 0;
 double _angle_to_rotate = 0;
+Vector2i _encoders_last;
 Vector2i _encoders;
 Vector2i _target;
 
-double _kp = 1.0; std::string _kp_key = "/controller/turn/kp";
-double _convergence_threshold_w = 0.1; std::string _convergence_threshold_w_key = "/controller/turn/conv_thresh";
+double _kp = 0.0003; std::string _kp_key = "/controller/turn/kp";
+double _kd = 0.0007; std::string _kd_key = "/controller/turn/kd";
+double _convergence_threshold_w = 0.001; std::string _convergence_threshold_w_key = "/controller/turn/conv_thresh";
 int _encoder_threshold = 10; std::string _encoder_threshold_key = "/controller/turn/encoder_thresh";
 
 //------------------------------------------------------------------------------
@@ -42,6 +44,8 @@ void callback_turn_angle(const std_msgs::Float64ConstPtr& deg)
 
 void callback_encoders(const ras_arduino_msgs::EncodersConstPtr& encoders)
 {
+    _encoders_last = _encoders;
+
     _encoders(0) = encoders->encoder1;
     _encoders(1) = encoders->encoder2;
 }
@@ -63,7 +67,11 @@ void send_done_message(bool flag, ros::Publisher& publisher) {
 double control_angular_velocity()
 {
     int32_t state = _target(0) - _encoders(0);
-    return pd::P_control(_kp, (double)state, 0.0);
+    int32_t state_last = _target(0) - _encoders_last(0);
+    double w = pd::PD_control(_kp,_kd,(double)state,0.0,(double)state_last,0,1.0/PUBLISH_FREQUENCY);
+    state_last = state;
+
+    return w;
 }
 
 //------------------------------------------------------------------------------
@@ -77,8 +85,12 @@ int main(int argc, char **argv)
     ros::Subscriber sub_angle = n.subscribe("/controller/turn/angle", 1, callback_turn_angle);
     ros::Subscriber sub_enc = n.subscribe("/arduino/encoders", 1, callback_encoders);
     ros::Publisher pub_twist = n.advertise<geometry_msgs::Twist>("/controller/turn/twist", 1);
+    //ros::Subscriber sub_enc = n.subscribe("/kobuki/encoders", 1, callback_encoders);
+    //ros::Publisher pub_twist = n.advertise<geometry_msgs::Twist>("/motor_controller/twist", 1);
     ros::Publisher pub_done = n.advertise<std_msgs::Bool>("/controller/turn/done", 1);
 
+    n.setParam(_kp_key, _kp);
+    n.setParam(_kd_key, _kd);
     n.setParam(_convergence_threshold_w_key, _convergence_threshold_w);
     n.setParam(_encoder_threshold_key, _encoder_threshold);
 
@@ -97,17 +109,19 @@ int main(int argc, char **argv)
             update_params();
 
             w += control_angular_velocity();
-            w = std::max(w, 1.0); //restrict to maximum velocity
+            //w = std::min(w, 1.0); //restrict to maximum velocity
 
             int encoderDifference = _target(0) - _encoders(0);
-            double acceleration = (w-w_last)/dt;
+            //double acceleration = (w-w_last)/dt;
 
             ROS_INFO("Encoder differences: (%d, %d)\n", encoderDifference, _target(1)-_encoders(1));
-            ROS_INFO("Acceleration: %lf\n\n",acceleration);
+            ROS_INFO("Velocity: %lf\n\n", w);
 
             //stop rotating when the angular velocity is stabelized
-            if (encoderDifference < _encoder_threshold &&
-                std::abs(acceleration)/ < _convergence_threshold_w)
+            if (std::abs(encoderDifference) < _encoder_threshold &&
+                w < 0.05
+                //std::abs(acceleration) < _convergence_threshold_w
+                    )
             {
                 _angle_to_rotate = 0;
                 w = w_last = 0;
