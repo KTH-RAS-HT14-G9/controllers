@@ -7,6 +7,7 @@ project(kinematic_controllers)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
+  common
 )
 
 ## System dependencies are found with CMake's conventions
@@ -93,8 +94,9 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
-  ${catkin_INCLUDE_DIRS}
+  ${common_INCLUDE_DIRS}
   "../etc/"
+  ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a cpp library
@@ -115,9 +117,11 @@ add_executable(turn_controller src/turn_controller.cpp)
 ## Specify libraries to link a library or executable target against
 target_link_libraries(forward_controller
   ${catkin_LIBRARIES}
+  ${common_LIBRARIES}
 )
 target_link_libraries(turn_controller
   ${catkin_LIBRARIES}
+  ${common_LIBRARIES}
 )
 
 #############
