@@ -34,47 +34,48 @@ namespace ir {
     
     static double distance(int id, int voltage) {
         double dist= 0;
+	double v = voltage;
         switch(id) {
             case id_front_left:
             {
-               double FL_p1=-0.8745;
-               double FL_p2= 4.209;
-               double FL_p3=-6.922;
-               double FL_p4= 5.957;
-               double FL_p5=-7.192;
-               double FL_p6= 12.31;
-               dist=FL_p1*pow(voltage,5) + FL_p2*pow(voltage,4) + FL_p3*pow(voltage,3) + FL_p4*pow(voltage,2) + FL_p5*voltage + FL_p6;
+               const double FL_p1=-0.8745;
+               const double FL_p2= 4.209;
+               const double FL_p3=-6.922;
+               const double FL_p4= 5.957;
+               const double FL_p5=-7.192;
+               const double FL_p6= 12.31;
+               dist=FL_p1* v*v*v*v*v+ FL_p2*v*v*v*v + FL_p3*v*v*v + FL_p4*v*v + FL_p5*v + FL_p6;
                
                 return dist;
             }
             case id_front_right:
             {
-               double FR_p1=-0.7935;
-               double FR_p2=3.638;
-               double FR_p3=-5.976;
-               double FR_p4=5.676;
-               double FR_p5=-7.334;
-               double FR_p6=12.45;
-               dist=FR_p1*pow(voltage,5) + FR_p2*pow(voltage,4) + FR_p3*pow(voltage,3) + FR_p4*pow(voltage,2) + FR_p5*voltage + FR_p6;
+               const double FR_p1=-0.7935;
+               const double FR_p2=3.638;
+               const double FR_p3=-5.976;
+               const double FR_p4=5.676;
+               const double FR_p5=-7.334;
+               const double FR_p6=12.45;
+               dist=FR_p1*v*v*v*v*v + FR_p2*v*v*v*v + FR_p3*v*v*v + FR_p4*v*v + FR_p5*v + FR_p6;
                 return dist;
             }
             case id_rear_left:
             {    
-                double BL_a=8753;
-                double BL_b=-1.245;
-                double BL_c=2.145;
+                const double BL_a=20080;
+                const double BL_b=-1.44;
+                const double BL_c=4.234;
                 dist=BL_a*pow(x,BL_b)+BL_c;
                 return dist;
             }
             case id_rear_right:
             {
-               double BR_p1=-0.7276;
-               double BR_p2=2.757;
-               double BR_p3=-3.964;
-               double BR_p4=4.782;
-               double BR_p5=-7.936;
-               double BR_p6=12.86;
-               dist=BR_p1*pow(voltage,5) + BR_p2*pow(voltage,4) + BR_p3*pow(voltage,3) + BR_p4*pow(voltage,2) + BR_p5*voltage + BR_p6;
+               const double BR_p1=-0.7276;
+               const double BR_p2=2.757;
+               const double BR_p3=-3.964;
+               const double BR_p4=4.782;
+               const double BR_p5=-7.936;
+               const double BR_p6=12.86;
+               dist=BR_p1*v*v*v*v*v + BR_p2*v*v*v*v + BR_p3*v*v*v+ BR_p4*v*v + BR_p5*v + BR_p6;
                 
                 return dist;
             }
