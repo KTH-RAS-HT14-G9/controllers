@@ -59,10 +59,10 @@ void send_done_message(bool flag, ros::Publisher& publisher) {
     publisher.publish(done);
 }
 
-double update_angular_velocity(double w)
+double control_angular_velocity()
 {
     int32_t state = _target(0) - _encoders(0);
-    return w+pd::P_control(_kp, (double)state, 0.0);
+    return pd::P_control(_kp, (double)state, 0.0);
 }
 
 //------------------------------------------------------------------------------
@@ -92,15 +92,24 @@ int main(int argc, char **argv)
         {
             update_params();
 
-            w = update_angular_velocity(w);
+            w += control_angular_velocity();
+            w = std::max(w, 1.0); //restrict to maximum velocity
 
-            //stop rotating when the angular velocity is stabilized
-            if (std::abs(w - w_last)/dt < _convergence_threshold)
+            int encoderDifference = _target(0) - _encoders(0);
+            double acceleration = (w-w_last)/dt;
+
+            ROS_INFO("Encoder differences: (%d, %d)\n", encoderDifference, _target(1)-_encoders(1));
+            ROS_INFO("Acceleration: %lf\n\n",acceleration);
+
+            //stop rotating when the angular velocity is stabelized
+            if (encoderDifference < 10 && std::abs(acceleration)/ < _convergence_threshold)
             {
                 _angle_to_rotate = 0;
                 w = w_last = 0;
 
                 send_done_message(true, pub_done);
+
+                ROS_INFO("Target rotation reached.\n\n");
             }
             else {
                 w_last = w;
