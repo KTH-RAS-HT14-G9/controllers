@@ -21,7 +21,8 @@ Vector2i _encoders;
 Vector2i _target;
 
 double _kp = 1.0; std::string _kp_key = "/controller/turn/kp";
-double _convergence_threshold = 0.1; std::string _convergence_threshold_key = "/controller/turn/conv_thresh";
+double _convergence_threshold_w = 0.1; std::string _convergence_threshold_w_key = "/controller/turn/conv_thresh";
+int _encoder_threshold = 10; std::string _encoder_threshold_key = "/controller/turn/encoder_thresh";
 
 //------------------------------------------------------------------------------
 // Callbacks
@@ -49,7 +50,7 @@ void callback_encoders(const ras_arduino_msgs::EncodersConstPtr& encoders)
 // Methods
 
 void update_params() {
-    ros::param::getCached(_convergence_threshold_key, _convergence_threshold);
+    ros::param::getCached(_convergence_threshold_w_key, _convergence_threshold_w);
     ros::param::getCached(_kp_key, _kp);
 }
 
@@ -78,6 +79,9 @@ int main(int argc, char **argv)
     ros::Publisher pub_twist = n.advertise<geometry_msgs::Twist>("/controller/turn/twist", 1);
     ros::Publisher pub_done = n.advertise<std_msgs::Bool>("/controller/turn/done", 1);
 
+    n.setParam(_convergence_threshold_w_key, _convergence_threshold_w);
+    n.setParam(_encoder_threshold_key, _encoder_threshold);
+
     ros::Rate loop_rate(PUBLISH_FREQUENCY);
 
     geometry_msgs::Twist twist;
@@ -102,7 +106,8 @@ int main(int argc, char **argv)
             ROS_INFO("Acceleration: %lf\n\n",acceleration);
 
             //stop rotating when the angular velocity is stabelized
-            if (encoderDifference < 10 && std::abs(acceleration)/ < _convergence_threshold)
+            if (encoderDifference < _encoder_threshold &&
+                std::abs(acceleration)/ < _convergence_threshold_w)
             {
                 _angle_to_rotate = 0;
                 w = w_last = 0;
