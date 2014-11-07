@@ -132,6 +132,7 @@ private:
         double target = left_target_angular_velocity();
         left_pwm = get_left_constant() + (int) left_controller->control_1d(estimated, target, 1.0/robot::prop::encoder_publish_frequency);
         left_pwm = left_pwm > 255 ? 255: left_pwm;
+        left_pwm = left_pwm < -255 ? -255: left_pwm;
     }
 
     void updateRightPWM()
@@ -140,6 +141,7 @@ private:
         double target = right_target_angular_velocity();
         right_pwm = get_right_constant() + (int) right_controller->control_1d(estimated, target, 1.0/robot::prop::encoder_publish_frequency);
         right_pwm = right_pwm > 255 ? 255: right_pwm;
+        right_pwm = right_pwm < -255 ? -255:right_pwm;
     }
 
     double left_target_angular_velocity() const
@@ -154,17 +156,17 @@ private:
 
 
     int get_left_constant() {
-        if(linear_velocity > 0)
+        if(linear_velocity > 0 || angular_velocity < 0)
             return left_const;
-        if(linear_velocity < 0)
+        if(linear_velocity < 0 || angular_velocity > 0)
             return -left_const;
         return 0;
     }
 
     int get_right_constant() {
-        if(linear_velocity > 0)
+        if(linear_velocity > 0 || angular_velocity > 0)
             return right_const;
-        if(linear_velocity < 0)
+        if(linear_velocity < 0 || angular_velocity < 0)
             return -right_const;
         return 0;
 
