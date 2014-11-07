@@ -134,7 +134,7 @@ int main(int argc, char **argv)
                 w_last = w;
             }
 
-            twist.angular.y = w;
+            twist.angular.z = w;
             pub_twist.publish(twist);
         }
 
