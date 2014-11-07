@@ -101,6 +101,7 @@ int main(int argc, char **argv)
     n.setParam(_kd_key, _kd);
     n.setParam(_convergence_threshold_w_key, _convergence_threshold_w);
     n.setParam(_encoder_threshold_key, _encoder_threshold);
+    n.setParam(_initial_w_key, _initial_w);
 
     ros::Rate loop_rate(PUBLISH_FREQUENCY);
 
