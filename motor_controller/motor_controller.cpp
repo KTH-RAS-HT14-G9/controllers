@@ -5,16 +5,12 @@
 #include <math.h>
 #include <stdlib.h> 
 #include "../etc/pid.h"
+#include "../etc/robot.h"
 
 class MotorController 
 {
 
 public:
-
-    static const double control_frequency = 10.0;
-    static const double ticks_per_rev = 360.0;
-    static const double wheel_radius = 0.049;
-    static const double wheel_distance = 0.21;
 
     MotorController() : linear_velocity(0.0), angular_velocity(0.0),
         left_encoder_delta(0), right_encoder_delta(0),
@@ -127,48 +123,50 @@ private:
 
     double estimated_angular_velocity(int encoder_delta) const
     {
-        return -((double) encoder_delta)*2.0*M_PI*control_frequency/ticks_per_rev;
+        return -((double) encoder_delta)*2.0*M_PI*robot::prop::encoder_publish_frequency/robot::prop::ticks_per_rev;
     }
 
     void updateLeftPWM()
     {
         double estimated = estimated_angular_velocity(left_encoder_delta);
         double target = left_target_angular_velocity();
-        left_pwm = get_left_constant() + (int) left_controller->control_1d(estimated, target, 1.0/control_frequency);
+        left_pwm = get_left_constant() + (int) left_controller->control_1d(estimated, target, 1.0/robot::prop::encoder_publish_frequency);
         left_pwm = left_pwm > 255 ? 255: left_pwm;
+        left_pwm = left_pwm < -255 ? -255: left_pwm;
     }
 
     void updateRightPWM()
     {
         double estimated = estimated_angular_velocity(right_encoder_delta);
         double target = right_target_angular_velocity();
-        right_pwm = get_right_constant() + (int) right_controller->control_1d(estimated, target, 1.0/control_frequency);
+        right_pwm = get_right_constant() + (int) right_controller->control_1d(estimated, target, 1.0/robot::prop::encoder_publish_frequency);
         right_pwm = right_pwm > 255 ? 255: right_pwm;
+        right_pwm = right_pwm < -255 ? -255:right_pwm;
     }
 
     double left_target_angular_velocity() const
     {
-        return (linear_velocity - wheel_distance/2.0*angular_velocity)/wheel_radius;
+        return (linear_velocity - robot::dim::wheel_distance/2.0*angular_velocity)/robot::dim::wheel_radius;
     }
 
     double right_target_angular_velocity() const
     {
-        return (linear_velocity + wheel_distance/2.0*angular_velocity)/wheel_radius;
+        return (linear_velocity + robot::dim::wheel_distance/2.0*angular_velocity)/robot::dim::wheel_radius;
     }
 
 
     int get_left_constant() {
-        if(linear_velocity > 0)
+        if(linear_velocity > 0 || angular_velocity < 0)
             return left_const;
-        if(linear_velocity < 0)
+        if(linear_velocity < 0 || angular_velocity > 0)
             return -left_const;
         return 0;
     }
 
     int get_right_constant() {
-        if(linear_velocity > 0)
+        if(linear_velocity > 0 || angular_velocity > 0)
             return right_const;
-        if(linear_velocity < 0)
+        if(linear_velocity < 0 || angular_velocity < 0)
             return -right_const;
         return 0;
 
@@ -203,7 +201,7 @@ int main(int argc, char **argv)
 
     ros::init(argc, argv, "motor_controller");
     MotorController mc;
-    ros::Rate loop_rate(mc.control_frequency);
+    ros::Rate loop_rate(robot::prop::encoder_publish_frequency);
 
     while(mc.ok())
     {
