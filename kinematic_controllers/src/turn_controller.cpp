@@ -7,6 +7,8 @@
 #include <pid.h>
 #include <robot.h>
 
+#define SIGN(x) ((x) <= 0 ? -1.0 : (x) > 0 ? 1.0 : 0.0)
+
 //------------------------------------------------------------------------------
 // Constants
 
@@ -21,10 +23,11 @@ Vector2i _encoders_last;
 Vector2i _encoders;
 Vector2i _target;
 
-double _kp = 0.0003; std::string _kp_key = "/controller/turn/kp";
-double _kd = 0.0007; std::string _kd_key = "/controller/turn/kd";
+double _kp = 0.0008; std::string _kp_key = "/controller/turn/kp";
+double _kd = 0.0015; std::string _kd_key = "/controller/turn/kd";
 double _convergence_threshold_w = 0.001; std::string _convergence_threshold_w_key = "/controller/turn/conv_thresh";
 int _encoder_threshold = 10; std::string _encoder_threshold_key = "/controller/turn/encoder_thresh";
+double _initial_w = 1.5; std::string _initial_w_key = "/controller/turn/initial_w";
 
 //------------------------------------------------------------------------------
 // Callbacks
@@ -56,6 +59,9 @@ void callback_encoders(const ras_arduino_msgs::EncodersConstPtr& encoders)
 void update_params() {
     ros::param::getCached(_convergence_threshold_w_key, _convergence_threshold_w);
     ros::param::getCached(_kp_key, _kp);
+    ros::param::getCached(_kd_key, _kd);
+    ros::param::getCached(_encoder_threshold_key, _encoder_threshold);
+    ros::param::getCached(_initial_w_key, _initial_w);
 }
 
 void send_done_message(bool flag, ros::Publisher& publisher) {
@@ -68,7 +74,8 @@ double control_angular_velocity()
 {
     int32_t state = _target(0) - _encoders(0);
     int32_t state_last = _target(0) - _encoders_last(0);
-    double w = pd::PD_control(_kp,_kd,(double)state,0.0,(double)state_last,0,1.0/PUBLISH_FREQUENCY);
+    double w = -pd::PD_control(_kp,_kd,(double)state,0.0,(double)state_last,0,1.0/PUBLISH_FREQUENCY);
+    w = w + SIGN(w)*_initial_w;
     state_last = state;
 
     return w;
@@ -85,6 +92,7 @@ int main(int argc, char **argv)
     ros::Subscriber sub_angle = n.subscribe("/controller/turn/angle", 1, callback_turn_angle);
     ros::Subscriber sub_enc = n.subscribe("/arduino/encoders", 1, callback_encoders);
     ros::Publisher pub_twist = n.advertise<geometry_msgs::Twist>("/controller/turn/twist", 1);
+
     //ros::Subscriber sub_enc = n.subscribe("/kobuki/encoders", 1, callback_encoders);
     //ros::Publisher pub_twist = n.advertise<geometry_msgs::Twist>("/motor_controller/twist", 1);
     ros::Publisher pub_done = n.advertise<std_msgs::Bool>("/controller/turn/done", 1);
