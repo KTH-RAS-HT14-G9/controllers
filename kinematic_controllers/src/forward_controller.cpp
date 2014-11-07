@@ -3,6 +3,7 @@
 #include <std_msgs/Float64.h>
 #include <std_msgs/Bool.h>
 #include <../etc/pid.h>
+#include <common/parameter.h>
 
 //------------------------------------------------------------------------------
 // Constants
@@ -16,7 +17,7 @@ const double DEFAULT_VELOCITY = 0.5;
 double _velocity = DEFAULT_VELOCITY;
 bool _active;
 
-double _kp = 1.0; std::string _kp_key="/controller/forward/kp";
+Parameter<double> _kp("/controller/forward/kp", 0.05);
 
 //------------------------------------------------------------------------------
 // Callbacks
@@ -41,20 +42,16 @@ int main(int argc, char **argv)
     ros::Subscriber sub_act = n.subscribe("/controller/forward/active",   1, callback_activate);
     ros::Publisher pub = n.advertise<geometry_msgs::Twist>("/controller/forward/twist", 1);
 
-    n.setParam(_kp_key, _kp);
-
     ros::Rate loop_rate(PUBLISH_FREQUENCY);
 
     geometry_msgs::Twist twist;
 
     while (n.ok()) {
 
-        n.getParamCached(_kp_key, _kp);
-
         if (_active)
-            twist.linear.x += pd::P_control(_kp, twist.linear.x, _velocity);
+            twist.linear.x += pd::P_control(_kp(), twist.linear.x, _velocity);
         else
-            twist.linear.x += pd::P_control(_kp, twist.linear.x, 0);
+            twist.linear.x += pd::P_control(_kp(), twist.linear.x, 0);
 
         pub.publish(twist);
 
