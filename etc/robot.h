@@ -25,6 +25,8 @@ namespace ir {
     const int id_front_right = 1;
     const int id_rear_left = 2;
     const int id_rear_right = 3;
+    const int id_front_long_left = 7;
+    const int id_front_long_right = 8;
     
     //in m
     const double offset_front_left = dim::robot_diameter/2.0 - 0.023;
@@ -78,6 +80,30 @@ namespace ir {
                dist=BR_p1*v*v*v*v*v + BR_p2*v*v*v*v + BR_p3*v*v*v+ BR_p4*v*v + BR_p5*v + BR_p6;
                 
                 return dist;
+            }
+            case id_front_long_left:
+            {
+               const double FL_L_p1=-1.379;
+               const double FL_L_p2= 5.483 ;
+               const double FL_L_p3=-7.03 ;
+               const double FL_L_p4= 6.301;
+               const double FL_L_p5=-12.76;
+               const double FL_L_p6= 23.53;
+               dist=FL_L_p1* v*v*v*v*v+ FL_L_p2*v*v*v*v + FL_L_p3*v*v*v + FL_L_p4*v*v + FL_L_p5*v + FL_L_p6;
+               
+                return dist;
+            }
+            case id_front_long_right:
+            {
+               const double FR_L_p1=-0.7737;
+               const double FR_L_p2= 3.388 ;
+               const double FR_L_p3=-5.781;
+               const double FR_L_p4= 7.77;
+               const double FR_L_p5=-13.65;
+               const double FR_L_p6= 23.43 ;
+               dist=FR_L_p1* v*v*v*v*v+ FR_L_p2*v*v*v*v + FR_L_p3*v*v*v + FR_L_p4*v*v + FR_L_p5*v + FR_L_p6;
+               
+               return dist;
             }
             default:
             {
