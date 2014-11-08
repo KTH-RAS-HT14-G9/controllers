@@ -3,11 +3,7 @@
 	<!-- launch motor controller -->
 	<node pkg="motor_controller" type="motor_controller" name="motor_controller" />
 
-	<!-- launch kinematic controllers -->
-	<node pkg="kinematic_controllers" type="forward_controller" name="forward_controller" />
-	<node pkg="kinematic_controllers" type="turn_controller" name="turn_controller" output="screen"/>
-
-	<!-- launch adapter -->
-	<node pkg="controller_adapter" type="controller_adapter" name="controller_adapter" />
+	<!-- launch adapter with all kinematic controllers-->
+	<node pkg="kinematic_controllers" type="controller_adapter" name="controller_adapter" />
 
 </launch>

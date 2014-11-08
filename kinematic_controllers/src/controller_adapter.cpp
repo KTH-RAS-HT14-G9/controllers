@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 #include <geometry_msgs/Twist.h>
-#include "topic_subscriber.h"
+#include "kinematic_controllers/controller_base.h"
+#include "kinematic_controllers/turn_controller.h"
 
 //------------------------------------------------------------------------------
 // Constants
@@ -23,11 +24,10 @@ int main(int argc, char **argv)
     ros::Publisher pub = nh.advertise<geometry_msgs::Twist>("/motor_controller/twist", 1);
     ros::Rate loop_rate(PUBLISH_FREQUENCY);
 
-    TopicSubscriber subscribers[] = {
-        TopicSubscriber(nh,"/controller/forward/twist",1),
-        TopicSubscriber(nh,"/controller/turn/twist",1)
+    ControllerBase controllers[] = {
+        TurnController(nh, PUBLISH_FREQUENCY)
     };
-    int nSubscribers = sizeof(subscribers)/sizeof(TopicSubscriber);
+    int nControllers = sizeof(controllers)/sizeof(ControllerBase);
 
 
     while(ros::ok()) {
@@ -39,19 +39,14 @@ int main(int argc, char **argv)
         _twist.angular.y = 0;
         _twist.angular.z = 0;
 
-        for(int i = 0; i < nSubscribers; ++i) {
+        for(int i = 0; i < nControllers; ++i) {
 
-            const geometry_msgs::Twist& twist = subscribers[i].get_twist();
+            const geometry_msgs::TwistConstPtr twist = controllers[i].update();
 
             //combine the twists blindly
 
-            _twist.angular.x += twist.angular.x;
-            _twist.angular.y += twist.angular.y;
-            _twist.angular.z += twist.angular.z;
-
-            _twist.linear.x += twist.linear.x;
-            _twist.linear.y += twist.linear.y;
-            _twist.linear.z += twist.linear.z;
+            _twist.angular.z += twist->angular.z;
+            _twist.linear.x += twist->linear.x;
         }
 
         pub.publish(_twist);
