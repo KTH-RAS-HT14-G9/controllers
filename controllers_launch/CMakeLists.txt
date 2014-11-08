@@ -1,14 +1,10 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(kinematic_controllers)
+project(controllers_launch)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  std_msgs
-  common
-)
+find_package(catkin REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -67,7 +63,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
 #   DEPENDENCIES
-#   std_msgs
+#   std_msgs  # Or other packages containing msgs
 # )
 
 ###################################
@@ -81,8 +77,8 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES kinematic_controllers
-#  CATKIN_DEPENDS roscpp std_msgs
+#  LIBRARIES controllers_launch
+#  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
 )
 
@@ -93,36 +89,23 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 # include_directories(include)
-include_directories(
-  ${common_INCLUDE_DIRS}
-  "../etc/"
-  ${catkin_INCLUDE_DIRS}
-)
 
 ## Declare a cpp library
-# add_library(kinematic_controllers
-#   src/${PROJECT_NAME}/kinematic_controllers.cpp
+# add_library(controllers_launch
+#   src/${PROJECT_NAME}/controllers_launch.cpp
 # )
 
 ## Declare a cpp executable
-# add_executable(kinematic_controllers_node src/kinematic_controllers_node.cpp)
-add_executable(forward_controller src/forward_controller.cpp)
-add_executable(turn_controller src/turn_controller.cpp)
+# add_executable(controllers_launch_node src/controllers_launch_node.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-# add_dependencies(kinematic_controllers_node kinematic_controllers_generate_messages_cpp)
-#add_dependencies(forward_controller kinematic_controllers_generate_messages_cpp)
+# add_dependencies(controllers_launch_node controllers_launch_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(forward_controller
-  ${catkin_LIBRARIES}
-  ${common_LIBRARIES}
-)
-target_link_libraries(turn_controller
-  ${catkin_LIBRARIES}
-  ${common_LIBRARIES}
-)
+# target_link_libraries(controllers_launch_node
+#   ${catkin_LIBRARIES}
+# )
 
 #############
 ## Install ##
@@ -139,7 +122,7 @@ target_link_libraries(turn_controller
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS kinematic_controllers kinematic_controllers_node
+# install(TARGETS controllers_launch controllers_launch_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -164,7 +147,7 @@ target_link_libraries(turn_controller
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_kinematic_controllers.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_controllers_launch.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
