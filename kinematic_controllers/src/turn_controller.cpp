@@ -72,7 +72,9 @@ double control_angular_velocity()
     w = w + SIGN(w)*_initial_w();
     state_last = state;
 
-    w = std::min(_limit_w(), 1.0); //restrict to maximum velocity
+    double sup = _limit_w();
+    double inf = -sup;
+    w = std::min(sup, std::max(inf, w)); //restrict to maximum velocity
 
     return w;
 }
