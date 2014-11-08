@@ -69,12 +69,7 @@ double control_angular_velocity()
     int32_t state = _target(0) - _encoders(0);
     int32_t state_last = _target(0) - _encoders_last(0);
     double w = -pd::PD_control(_kp(),_kd(),(double)state,0.0,(double)state_last,0,1.0/PUBLISH_FREQUENCY);
-    w = w + SIGN(w)*_initial_w();
     state_last = state;
-
-    double sup = _limit_w();
-    double inf = -sup;
-    w = std::min(sup, std::max(inf, w)); //restrict to maximum velocity
 
     return w;
 }
@@ -108,6 +103,10 @@ int main(int argc, char **argv)
         if (_angle_to_rotate != 0)
         {
             w += control_angular_velocity();
+            w += SIGN(w)*_initial_w();
+            double sup = _limit_w();
+            double inf = -sup;
+            w = std::min(sup, std::max(inf, w)); //restrict to maximum velocity
 
             int encoderDifference = _target(0) - _encoders(0);
             //double acceleration = (w-w_last)/dt;
