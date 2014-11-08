@@ -24,12 +24,12 @@ Vector2i _encoders_last;
 Vector2i _encoders;
 Vector2i _target;
 
-Parameter<double> _kp("/controller/turn/kp", 0.0008);
-Parameter<double> _kd("/controller/turn/kd", 0.0015);
+Parameter<double> _kp("/controller/turn/kp", 0.001);
+Parameter<double> _kd("/controller/turn/kd", 0.0005);
 Parameter<double> _convergence_threshold_w("/controller/turn/conv_thresh", 0.001);
 Parameter<int> _encoder_threshold("/controller/turn/encoder_thresh", 10);
 Parameter<double> _initial_w("/controller/turn/initial_w", 0.5);
-Parameter<double> _limit_w("/controller/turn/limit_w", 2.0);
+Parameter<double> _limit_w("/controller/turn/limit_w", 0.5);
 
 //------------------------------------------------------------------------------
 // Callbacks
@@ -103,7 +103,6 @@ int main(int argc, char **argv)
         if (_angle_to_rotate != 0)
         {
             w += control_angular_velocity();
-            //w += SIGN(w)*_initial_w();
             double sup = _limit_w();
             double inf = -sup;
             w = std::min(sup, std::max(inf, w)); //restrict to maximum velocity
@@ -116,7 +115,7 @@ int main(int argc, char **argv)
 
             //stop rotating when the angular velocity is stabelized
             if (std::abs(encoderDifference) < _encoder_threshold() &&
-                std::abs(w) < 0.05
+                std::abs(w) < 0.3
                 //std::abs(acceleration) < _convergence_threshold_w
                     )
             {
@@ -131,7 +130,7 @@ int main(int argc, char **argv)
                 w_last = w;
             }
 
-            twist.angular.z = w;
+            twist.angular.z = w+SIGN(w)*_initial_w();
             pub_twist.publish(twist);
         }
 
