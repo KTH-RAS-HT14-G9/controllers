@@ -1,10 +1,39 @@
-#include <ros/ros.h>
-#include <geometry_msgs/Twist.h>
-#include <std_msgs/Float64.h>
-#include <std_msgs/Bool.h>
+#include <kinematic_controllers/forward_controller.h>
 #include <../etc/pid.h>
-#include <common/parameter.h>
 
+ForwardController::ForwardController(ros::NodeHandle &handle, double update_frequency)
+    :ControllerBase(handle, update_frequency)
+    ,_kp("/controller/forward/kp", 0.15)
+    ,_active(false)
+    ,_velocity(0)
+    ,_twist(new geometry_msgs::Twist)
+{
+    _sub_vel = _handle.subscribe("/controller/forward/velocity", 1, &ForwardController::callback_forward_velocity, this);
+    _sub_act = _handle.subscribe("/controller/forward/active",   1, &ForwardController::callback_activate, this);
+}
+
+ForwardController::~ForwardController()
+{}
+
+void ForwardController::callback_forward_velocity(const std_msgs::Float64ConstPtr& vel) {
+    _velocity = vel->data;
+}
+
+void ForwardController::callback_activate(const std_msgs::BoolConstPtr& val) {
+    _active = val->data;
+}
+
+geometry_msgs::TwistConstPtr ForwardController::update()
+{
+    if (_active)
+        _twist->linear.x += pd::P_control(_kp(), _twist->linear.x, _velocity);
+    else
+        _twist->linear.x += pd::P_control(_kp(), _twist->linear.x, 0);
+
+    return _twist;
+}
+
+/*
 //------------------------------------------------------------------------------
 // Constants
 
@@ -61,3 +90,4 @@ int main(int argc, char **argv)
 
     return 0;
 }
+*/

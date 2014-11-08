@@ -94,6 +94,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
+  include
   ${common_INCLUDE_DIRS}
   "../etc/"
   ${catkin_INCLUDE_DIRS}
@@ -103,11 +104,20 @@ include_directories(
 # add_library(kinematic_controllers
 #   src/${PROJECT_NAME}/kinematic_controllers.cpp
 # )
+add_library(controller_base
+  src/controller_base.cpp
+)
+add_library(turn_controller
+  src/turn_controller.cpp
+)
+add_library(forward_controller
+  src/forward_controller.cpp
+)
+
 
 ## Declare a cpp executable
 # add_executable(kinematic_controllers_node src/kinematic_controllers_node.cpp)
-add_executable(forward_controller src/forward_controller.cpp)
-add_executable(turn_controller src/turn_controller.cpp)
+add_executable(controller_adapter src/controller_adapter.cpp)
 add_executable(wall_following_controller src/wall_following_controller.cpp)
 
 ## Add cmake target dependencies of the executable/library
@@ -116,13 +126,12 @@ add_executable(wall_following_controller src/wall_following_controller.cpp)
 #add_dependencies(forward_controller kinematic_controllers_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(forward_controller
+target_link_libraries(controller_adapter
   ${catkin_LIBRARIES}
   ${common_LIBRARIES}
-)
-target_link_libraries(turn_controller
-  ${catkin_LIBRARIES}
-  ${common_LIBRARIES}
+  controller_base
+  turn_controller
+  forward_controller
 )
 target_link_libraries(wall_following_controller
   ${catkin_LIBRARIES}
