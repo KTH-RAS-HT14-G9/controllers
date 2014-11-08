@@ -17,7 +17,7 @@ const double DEFAULT_VELOCITY = 0.5;
 double _velocity = DEFAULT_VELOCITY;
 bool _active;
 
-Parameter<double> _kp("/controller/forward/kp", 0.05);
+Parameter<double> _kp("/controller/forward/kp", 0.15);
 
 //------------------------------------------------------------------------------
 // Callbacks
