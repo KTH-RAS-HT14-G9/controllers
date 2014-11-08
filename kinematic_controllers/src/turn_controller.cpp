@@ -84,10 +84,10 @@ int main(int argc, char **argv)
     ros::NodeHandle n;
     ros::Subscriber sub_angle = n.subscribe("/controller/turn/angle", 1, callback_turn_angle);
     ros::Subscriber sub_enc = n.subscribe("/arduino/encoders", 1, callback_encoders);
-    ros::Publisher pub_twist = n.advertise<geometry_msgs::Twist>("/controller/turn/twist", 1);
+    //ros::Publisher pub_twist = n.advertise<geometry_msgs::Twist>("/controller/turn/twist", 1);
 
     //ros::Subscriber sub_enc = n.subscribe("/kobuki/encoders", 1, callback_encoders);
-    //ros::Publisher pub_twist = n.advertise<geometry_msgs::Twist>("/motor_controller/twist", 1);
+    ros::Publisher pub_twist = n.advertise<geometry_msgs::Twist>("/motor_controller/twist", 1);
     ros::Publisher pub_done = n.advertise<std_msgs::Bool>("/controller/turn/done", 1);
 
     ros::Rate loop_rate(PUBLISH_FREQUENCY);
