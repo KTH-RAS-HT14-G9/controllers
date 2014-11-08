@@ -28,7 +28,7 @@ Parameter<double> _kp("/controller/turn/kp", 0.0008);
 Parameter<double> _kd("/controller/turn/kd", 0.0015);
 Parameter<double> _convergence_threshold_w("/controller/turn/conv_thresh", 0.001);
 Parameter<int> _encoder_threshold("/controller/turn/encoder_thresh", 10);
-Parameter<double> _initial_w("/controller/turn/initial_w", 0.2);
+Parameter<double> _initial_w("/controller/turn/initial_w", 0.5);
 Parameter<double> _limit_w("/controller/turn/limit_w", 2.0);
 
 //------------------------------------------------------------------------------
