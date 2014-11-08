@@ -7,7 +7,7 @@
 #include <geometry_msgs/Twist.h>
 #include <math.h>
 #include <stdlib.h>
-#include "../etc/pid.h"
+#include <pid.h>
 #include <common/robot.h>
 #include <common/parameter.h>
 

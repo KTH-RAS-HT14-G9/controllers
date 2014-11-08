@@ -13,7 +13,7 @@ MotorController::MotorController() :
     right_i("/pid/right_i", 1.0),
     right_d("/pid/right_d", 0.1),
     left_const("/pid/left_const", 47),
-    right_const("/pid/right_const", 47)
+    right_const("/pid/right_const", 42)
 {
     handle = ros::NodeHandle("");
 
@@ -131,7 +131,7 @@ int MotorController::get_right_const() {
 
 }
 
-int main(int argc, char **argv) 
+int main(int argc, char **argv)
 {
     ros::init(argc, argv, "motor_controller");
     MotorController mc;
