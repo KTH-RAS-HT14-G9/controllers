@@ -21,10 +21,10 @@ namespace prop {
 }
 
 namespace ir {
-    const int id_front_left = 0;
-    const int id_front_right = 1;
-    const int id_rear_left = 2;
-    const int id_rear_right = 3;
+    const int id_front_left = 1;
+    const int id_front_right = 2;
+    const int id_rear_left = 3;
+    const int id_rear_right = 4;
     const int id_front_long_left = 7;
     const int id_front_long_right = 8;
     
