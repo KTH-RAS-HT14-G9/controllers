@@ -118,6 +118,7 @@ add_library(forward_controller
 ## Declare a cpp executable
 # add_executable(kinematic_controllers_node src/kinematic_controllers_node.cpp)
 add_executable(controller_adapter src/controller_adapter.cpp)
+add_executable(wall_following_controller src/wall_following_controller.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
@@ -131,6 +132,10 @@ target_link_libraries(controller_adapter
   controller_base
   turn_controller
   forward_controller
+)
+target_link_libraries(wall_following_controller
+  ${catkin_LIBRARIES}
+  ${common_LIBRARIES}
 )
 
 #############
