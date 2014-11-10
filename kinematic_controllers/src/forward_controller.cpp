@@ -5,7 +5,7 @@ ForwardController::ForwardController(ros::NodeHandle &handle, double update_freq
     :ControllerBase(handle, update_frequency)
     ,_kp("/controller/forward/kp", 0.15)
     ,_active(false)
-    ,_velocity(0)
+    ,_velocity(0.3)
     ,_twist(new geometry_msgs::Twist)
 {
     _sub_vel = _handle.subscribe("/controller/forward/velocity", 1, &ForwardController::callback_forward_velocity, this);
