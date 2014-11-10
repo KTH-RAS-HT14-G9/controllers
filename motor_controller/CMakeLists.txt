@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(motor_controller)
 
-find_package(catkin REQUIRED COMPONENTS roscpp)
+find_package(catkin REQUIRED COMPONENTS roscpp ras_arduino_msgs)
 # std_msgs)
 find_package(common REQUIRED)
 
