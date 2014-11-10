@@ -13,6 +13,7 @@ int _ch1,_ch2,_ch3,_ch4;
 double _d1,_d2,_d3,_d4;
 
 Parameter<double> _kp("/controller/wall_follow/kp", -3);
+Parameter<double> _kp2("/controller/wall_follow/kp2", -10);
 
 /**
  * Function that will be executed when the values from the distance
@@ -28,6 +29,10 @@ void sensorCallback(const ras_arduino_msgs::ADConverter lecture)
   _d2 = robot::ir::distance(2,_ch2);
   _d3 = robot::ir::distance(3,_ch3);
   _d4 = robot::ir::distance(4,_ch4);
+  ROS_INFO("Distance fl(1): %f\n", _d1);
+  ROS_INFO("Distance fr(2): %f\n", _d2);
+  ROS_INFO("Distance bl(3): %f\n", _d3);
+  ROS_INFO("Distance br(4): %f\n", _d4);
 }
 
 
@@ -80,13 +85,13 @@ int main(int argc, char **argv)
       //twist.angular.z = _kp*(_d1-_d3);
       state = _d3;
       target = _d1;
-      twist.angular.z = pd::P_control(_kp(),state,target);
+      twist.angular.z = pd::P_control(_kp2(),state,target);
     } else if (_ch2 < 0.1) //front right side < 0.1
     {
       //twist.angular.z = -_kp*(_d2-_d4);
       state = _d4;
       target = _d2;
-      twist.angular.z = -pd::P_control(_kp(),state,target);
+      twist.angular.z = -pd::P_control(_kp2(),state,target);
     } else
     {
       //twist.angular.z = _kp*((_d1+_d4)-(_d2+_d3));
