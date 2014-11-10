@@ -89,24 +89,40 @@ int main(int argc, char **argv)
   {
 	if (_active)
 	{
-		if (_d1 < 0.1) //front left side < 0.1
+		if(_d1<0.25 && _d2<0.25)
 		{
-		  //twist.angular.z = _kp*(_d1-_d3);
-		  state = _d3;
-		  target = _d1;
-		  twist.angular.z = pd::P_control(_kp2(),state,target);
-		} else if (_ch2 < 0.1) //front right side < 0.1
+			if (_d1 < 0.1) //front left side < 0.1
+			{
+			  //twist.angular.z = _kp2*(0.1-_d1);
+			  state = _d1;
+			  target = 0.1;
+			  twist.angular.z = pd::P_control(_kp2(),state,target);
+			} else if (_ch2 < 0.1) //front right side < 0.1
+			{
+			  //twist.angular.z = -_kp2*(0.1-_d2);
+			  state = _d2;
+			  target = 0.1;
+			  twist.angular.z = -pd::P_control(_kp2(),state,target);
+			} else
+			{
+			  //twist.angular.z = _kp*((_d1+_d4)-(_d2+_d3));
+			  state = _d2+_d3;
+			  target = _d1+_d4;
+			  twist.angular.z = pd::P_control(_kp(),state,target);
+			}
+		} else if (_d1<0.25 && _d2>=0.25)
 		{
-		  //twist.angular.z = -_kp*(_d2-_d4);
-		  state = _d4;
-		  target = _d2;
-		  twist.angular.z = -pd::P_control(_kp2(),state,target);
-		} else
+			state = _d3;
+			target = _d1;
+			twist.angular.z = pd::P_control(_kp(),state,target);
+		} else if (_d1>=0.25 && _d2<0.25)
 		{
-		  //twist.angular.z = _kp*((_d1+_d4)-(_d2+_d3));
-		  state = _d2+_d3;
-		  target = _d1+_d4;
-		  twist.angular.z = pd::P_control(_kp(),state,target);
+			state = _d4;
+			target = _d2;
+			twist.angular.z = -pd::P_control(_kp(),state,target);
+		} else 
+		{
+			twist.angular.z = 0;
 		}
 	} else
 	{
