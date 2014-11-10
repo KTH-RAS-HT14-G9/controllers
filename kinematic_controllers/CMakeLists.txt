@@ -127,6 +127,9 @@ add_executable(wall_following_controller src/wall_following_controller.cpp)
 #add_dependencies(forward_controller kinematic_controllers_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
+target_link_libraries(turn_controller controller_base)
+target_link_libraries(forward_controller controller_base)
+
 target_link_libraries(controller_adapter
   ${catkin_LIBRARIES}
   ${common_LIBRARIES}

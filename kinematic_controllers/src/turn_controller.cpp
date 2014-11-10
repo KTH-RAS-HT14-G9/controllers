@@ -17,7 +17,7 @@ void TurnController::callback_turn_angle(const std_msgs::Float64ConstPtr& deg)
 
     _angle_to_rotate = deg->data;
 
-    Eigen::Vector2i delta_ticks = robot::Delta_ticks_for_rotation(_angle_to_rotate);
+    Vector2i delta_ticks = robot::Delta_ticks_for_rotation(_angle_to_rotate);
     _target = _encoders + delta_ticks;
 }
 
