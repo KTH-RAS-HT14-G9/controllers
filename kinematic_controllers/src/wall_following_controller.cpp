@@ -1,15 +1,85 @@
-#include <ros/ros.h>
-#include <ras_arduino_msgs/ADConverter.h>
-#include <geometry_msgs/Twist.h>
-#include <geometry_msgs/Vector3.h>
-
-#include <sstream>
-#include <math.h>
+#include <kinematic_controllers/wall_following_controller.h>
 #include <pid.h>
-#include <common/robot.h>
-#include <common/parameter.h>
-#include <std_msgs/Bool.h>
 
+
+WallFollowingController::WallFollowingController(ros::NodeHandle &handle, 
+                                                double update_frequency)
+    :ControllerBase(handle, update_frequency)
+    ,_kp("/controller/wall_follow/kp", 3)
+    ,_kp2("/controller/wall_follow/kp2", 10)
+    ,_active(false)
+    ,_ch1(0)
+    ,_ch2(0)
+    ,_ch3(0)
+    ,_ch4(0)
+    ,_d1(0)
+    ,_d2(0)
+    ,_d3(0)
+    ,_d4(0)
+    ,_twist(new geometry_msgs::Twist)
+{
+    _sub_sens = _handle.subscribe("/arduino/adc", 1, 
+                  &WallFollowingController::callback_sensors, this);
+    _sub_act = _handle.subscribe("/controller/wall_follow/active", 1, 
+                  &WallFollowingController::callback_activate, this);
+}
+
+WallFollowingController::~WallFollowingController()
+{}
+
+void WallFollowingController::callback_sensors(const ras_arduino_msgs::ADConverter lecture) {
+    _ch1 = lecture.ch1;
+    _ch2 = lecture.ch2;
+    _ch3 = lecture.ch3;
+    _ch4 = lecture.ch4;
+    _d1 = robot::ir::distance(1,_ch1);
+    _d2 = robot::ir::distance(2,_ch2);
+    _d3 = robot::ir::distance(3,_ch3);
+    _d4 = robot::ir::distance(4,_ch4);
+}
+
+void WallFollowingController::callback_activate(const std_msgs::BoolConstPtr& val) {
+    _active = val->data;
+}
+
+geometry_msgs::TwistConstPtr WallFollowingController::update()
+{
+    if (_active)
+    {
+        if(_d1<0.25 && _d2<0.25)
+        {
+            if (_d1 < 0.1) //front left side < 0.1
+            {
+                //twist.angular.z = _kp2*(0.1-_d1);
+                _twist->angular.z = pd::P_control(_kp2(),_d1,0.1);
+            } else if (_ch2 < 0.1) //front right side < 0.1
+            {
+                //twist.angular.z = -_kp2*(0.1-_d2);
+                _twist->angular.z = -pd::P_control(_kp2(),_d2,0.1);
+            } else
+            {
+                //twist.angular.z = _kp*((_d1+_d4)-(_d2+_d3));
+                _twist->angular.z = pd::P_control(_kp(),_d2+_d3,_d1+_d4);
+            }
+        } else if (_d1<0.25 && _d2>=0.25)
+        {
+            _twist->angular.z = pd::P_control(_kp(),_d3,_d1);
+        } else if (_d1>=0.25 && _d2<0.25)
+        {
+            _twist->angular.z = -pd::P_control(_kp(),_d4,_d2);
+        } else 
+        {
+            _twist->angular.z = 0;
+        }
+    } else
+    {
+        _twist->angular.z = 0;
+    }
+
+    return _twist;
+}
+
+/*
 int _ch1,_ch2,_ch3,_ch4;
 double _d1,_d2,_d3,_d4;
 bool _active;
@@ -17,10 +87,7 @@ bool _active;
 Parameter<double> _kp("/controller/wall_follow/kp", 3);
 Parameter<double> _kp2("/controller/wall_follow/kp2", 10);
 
-/**
- * Function that will be executed when the values from the distance
- * sensors have been read
- */
+
 void sensorCallback(const ras_arduino_msgs::ADConverter lecture)
 {
   _ch1 = lecture.ch1;
@@ -44,28 +111,22 @@ void callback_activate(const std_msgs::BoolConstPtr& val) {
 
 int main(int argc, char **argv)
 {
-  /**
-   * Init the node
-   */
+  //Init the node
   ros::init(argc, argv, "line_cartesian_controller");
 
   ros::NodeHandle n;
 
-  /**
-   * Publish to the topic "/controller/align/twist"
-   */
+  //Publish to the topic "/controller/align/twist"
   ros::Publisher pub = n.advertise<geometry_msgs::Twist>("/motor_controller/twist", 1000);
-  /*
-   * Subscribe to the topic "/arduino/adc"
-   */
+  
+  //Subscribe to the topic "/arduino/adc" 
   ros::Subscriber sub = n.subscribe("/arduino/adc",1000,sensorCallback);
-  ros::Subscriber sub_act = n.subscribe("/controller/wall_follower/active", 1, callback_activate);
+  ros::Subscriber sub_act = n.subscribe("/controller/wall_follower/active", 
+                  1, callback_activate);
 
   ros::Rate loop_rate(10);
 
-  /**
-   * Message to send
-   */
+  //Message to send
   geometry_msgs::Twist twist;
   _ch1 = 0;
   _ch2 = 0;
@@ -138,3 +199,4 @@ int main(int argc, char **argv)
 
   return 0;
 }
+*/
