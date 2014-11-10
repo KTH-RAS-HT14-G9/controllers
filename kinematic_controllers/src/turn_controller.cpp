@@ -2,7 +2,7 @@
 #include <common/robot.h>
 #include <pid.h>
 
-#define SIGN(x) ( (x) <= 0 ? -1.0 : ((x) > 0 ? 1.0 : 0.0) )
+#define SIGN(x) ( (x) < 0 ? -1.0 : ((x) > 0 ? 1.0 : 0.0) )
 
 
 //------------------------------------------------------------------------------
@@ -102,6 +102,10 @@ geometry_msgs::TwistConstPtr TurnController::update()
         }
 
         _twist->angular.z = _w+SIGN(_w)*_initial_w();
+    }
+    else
+    {
+        _twist->angular.z = 0;
     }
 
     return _twist;
