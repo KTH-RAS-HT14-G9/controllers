@@ -2,7 +2,7 @@
 #include <common/robot.h>
 #include <pid.h>
 
-#define SIGN(x) ( (x) <= 0 ? -1.0 : ((x) > 0 ? 1.0 : 0.0) )
+#define SIGN(x) ( (x) < 0 ? -1.0 : ((x) > 0 ? 1.0 : 0.0) )
 
 
 //------------------------------------------------------------------------------
@@ -17,7 +17,7 @@ void TurnController::callback_turn_angle(const std_msgs::Float64ConstPtr& deg)
 
     _angle_to_rotate = deg->data;
 
-    Eigen::Vector2i delta_ticks = robot::Delta_ticks_for_rotation(_angle_to_rotate);
+    Vector2i delta_ticks = robot::Delta_ticks_for_rotation(_angle_to_rotate);
     _target = _encoders + delta_ticks;
 }
 
@@ -102,6 +102,10 @@ geometry_msgs::TwistConstPtr TurnController::update()
         }
 
         _twist->angular.z = _w+SIGN(_w)*_initial_w();
+    }
+    else
+    {
+        _twist->angular.z = 0;
     }
 
     return _twist;
