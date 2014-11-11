@@ -29,12 +29,14 @@ private:
 
     //------------------------------------------------------------------------------
     // Parameter
-    Parameter<double> _kp;
+    Parameter<double> _kp_a, _kp_b;
+    Parameter<double> _stop_thresh;
 
     //------------------------------------------------------------------------------
     // Subscribers and publisher
     ros::Subscriber _sub_vel;
     ros::Subscriber _sub_act;
+    ros::Publisher  _pub_stop;
 };
 
 
