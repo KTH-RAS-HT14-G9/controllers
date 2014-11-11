@@ -1,15 +1,19 @@
 #include <kinematic_controllers/forward_controller.h>
+#include <std_msgs/Bool.h>
 #include <../etc/pid.h>
 
 ForwardController::ForwardController(ros::NodeHandle &handle, double update_frequency)
     :ControllerBase(handle, update_frequency)
-    ,_kp("/controller/forward/kp", 0.15)
+    ,_kp_a("/controller/forward/kp/accel", 0.15)
+    ,_kp_b("/controller/forward/kp/break", 0.3)
+    ,_stop_thresh("/controller/forward/stop_thresh", 0.01)
     ,_active(false)
-    ,_velocity(0.3)
+    ,_velocity(0.2)
     ,_twist(new geometry_msgs::Twist)
 {
     _sub_vel = _handle.subscribe("/controller/forward/velocity", 1, &ForwardController::callback_forward_velocity, this);
     _sub_act = _handle.subscribe("/controller/forward/active",   1, &ForwardController::callback_activate, this);
+    _pub_stop = _handle.advertise<std_msgs::Bool>("/controller/forward/stopped",1);
 }
 
 ForwardController::~ForwardController()
@@ -26,9 +30,18 @@ void ForwardController::callback_activate(const std_msgs::BoolConstPtr& val) {
 geometry_msgs::TwistConstPtr ForwardController::update()
 {
     if (_active)
-        _twist->linear.x += pd::P_control(_kp(), _twist->linear.x, _velocity);
-    else
-        _twist->linear.x += pd::P_control(_kp(), _twist->linear.x, 0);
+        _twist->linear.x += pd::P_control(_kp_a(), _twist->linear.x, _velocity);
+    else {
+        _twist->linear.x += pd::P_control(_kp_b(), _twist->linear.x, 0);
+
+        if (std::abs(_twist->linear.x) < _stop_thresh()) {
+            _twist->linear.x = 0;
+            //send msg
+            std_msgs::Bool msg;
+            msg.data = true;
+            _pub_stop.publish(msg);
+        }
+    }
 
     return _twist;
 }
