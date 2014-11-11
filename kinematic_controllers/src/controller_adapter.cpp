@@ -3,6 +3,7 @@
 #include "kinematic_controllers/controller_base.h"
 #include "kinematic_controllers/turn_controller.h"
 #include "kinematic_controllers/forward_controller.h"
+#include "kinematic_controllers/wall_following_controller.h"
 
 //------------------------------------------------------------------------------
 // Constants
@@ -27,7 +28,8 @@ int main(int argc, char **argv)
 
     ControllerBase* controllers[] = {
         new ForwardController(nh, PUBLISH_FREQUENCY),
-        new TurnController(nh, PUBLISH_FREQUENCY)
+        new TurnController(nh, PUBLISH_FREQUENCY),
+        new WallFollowingController(nh, PUBLISH_FREQUENCY)
     };
     int nControllers = sizeof(controllers)/sizeof(ControllerBase*);
 
