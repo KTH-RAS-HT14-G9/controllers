@@ -25,6 +25,7 @@ private:
     // Member
     double _velocity;
     bool _active;
+    bool _send_msg_flag;
     geometry_msgs::TwistPtr _twist;
 
     //------------------------------------------------------------------------------
