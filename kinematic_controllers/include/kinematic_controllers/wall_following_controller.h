@@ -24,19 +24,20 @@ private:
     // Method declarations
     void callback_sensors(const ras_arduino_msgs::ADConverter lecture);
     void callback_activate(const std_msgs::BoolConstPtr& val);
-
+    bool bothWallsClose();
+    bool leftWallClose();
+    bool rightWallClose();
     //------------------------------------------------------------------------------
     // Member
     int _ch1,_ch2,_ch3,_ch4;
-	double _d1,_d2,_d3,_d4;
+    double fl_side,fr_side,bl_side,br_side;
 	bool _active;
     geometry_msgs::TwistPtr _twist;
 
     //------------------------------------------------------------------------------
     // Parameter
     Parameter<double> _kp;
-    Parameter<double> _kp2;
-	Parameter<double> _no_wall_th;
+    Parameter<double> wall_th;
 
     //------------------------------------------------------------------------------
     // Subscribers and publisher
