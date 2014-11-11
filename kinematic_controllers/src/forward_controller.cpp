@@ -12,9 +12,9 @@ ForwardController::ForwardController(ros::NodeHandle &handle, double update_freq
     ,_twist(new geometry_msgs::Twist)
     ,_send_msg_flag(false)
 {
-    _sub_vel = _handle.subscribe("/controller/forward/velocity", 1, &ForwardController::callback_forward_velocity, this);
-    _sub_act = _handle.subscribe("/controller/forward/active",   1, &ForwardController::callback_activate, this);
-    _pub_stop = _handle.advertise<std_msgs::Bool>("/controller/forward/stopped",1);
+    _sub_vel = _handle.subscribe("/controller/forward/velocity", 10, &ForwardController::callback_forward_velocity, this);
+    _sub_act = _handle.subscribe("/controller/forward/active",   10, &ForwardController::callback_activate, this);
+    _pub_stop = _handle.advertise<std_msgs::Bool>("/controller/forward/stopped",10);
 }
 
 ForwardController::~ForwardController()
@@ -26,7 +26,7 @@ void ForwardController::callback_forward_velocity(const std_msgs::Float64ConstPt
 
 void ForwardController::callback_activate(const std_msgs::BoolConstPtr& val) {
     _active = val->data;
-    if (_active) _send_msg_flag = true;
+    if (_active==true) _send_msg_flag = true;
 }
 
 geometry_msgs::TwistConstPtr ForwardController::update()

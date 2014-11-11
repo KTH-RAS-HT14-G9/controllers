@@ -44,10 +44,10 @@ TurnController::TurnController(ros::NodeHandle &handle, double update_frequency)
 {
     _angle_to_rotate = 0;
 
-    _sub_angle = _handle.subscribe("/controller/turn/angle", 1, &TurnController::callback_turn_angle, this);
-    _sub_enc = _handle.subscribe("/arduino/encoders", 1, &TurnController::callback_encoders, this);
+    _sub_angle = _handle.subscribe("/controller/turn/angle", 10, &TurnController::callback_turn_angle, this);
+    _sub_enc = _handle.subscribe("/arduino/encoders", 10, &TurnController::callback_encoders, this);
 
-    _pub_done = _handle.advertise<std_msgs::Bool>("/controller/turn/done", 1);
+    _pub_done = _handle.advertise<std_msgs::Bool>("/controller/turn/done", 10);
 }
 
 TurnController::~TurnController() {
