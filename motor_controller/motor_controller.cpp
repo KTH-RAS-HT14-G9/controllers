@@ -21,9 +21,9 @@ MotorController::MotorController() :
     right_controller = new pid_1d(right_p(), right_i(), right_d());
 
     update_pid_params();
-    twist_subscriber = handle.subscribe("/motor_controller/twist", 1000, &MotorController::twistCallback, this);
-    encoder_subscriber = handle.subscribe("/arduino/encoders", 1000, &MotorController::encoderCallback, this);
-    pwm_publisher = handle.advertise<ras_arduino_msgs::PWM>("/arduino/pwm", 1000);
+    twist_subscriber = handle.subscribe("/motor_controller/twist", 1, &MotorController::twistCallback, this);
+    encoder_subscriber = handle.subscribe("/arduino/encoders", 10, &MotorController::encoderCallback, this);
+    pwm_publisher = handle.advertise<ras_arduino_msgs::PWM>("/arduino/pwm", 10);
 }
 
 MotorController::~MotorController() {
