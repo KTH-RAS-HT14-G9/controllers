@@ -36,6 +36,7 @@ private:
     // Parameter
     Parameter<double> _kp;
     Parameter<double> _kp2;
+	Parameter<double> _no_wall_th;
 
     //------------------------------------------------------------------------------
     // Subscribers and publisher
