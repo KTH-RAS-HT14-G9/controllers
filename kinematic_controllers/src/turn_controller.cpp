@@ -34,10 +34,10 @@ void TurnController::callback_encoders(const ras_arduino_msgs::EncodersConstPtr&
 
 TurnController::TurnController(ros::NodeHandle &handle, double update_frequency)
     :ControllerBase(handle, update_frequency)
-    ,_kp("/controller/turn/kp", 0.001)
+    ,_kp("/controller/turn/kp", 0.0005)
     ,_kd("/controller/turn/kd", 0.0005)
     ,_convergence_threshold_w("/controller/turn/conv_thresh", 0.001)
-    ,_encoder_threshold("/controller/turn/encoder_thresh", 10)
+    ,_encoder_threshold("/controller/turn/encoder_thresh", 5)
     ,_initial_w("/controller/turn/initial_w", 0.5)
     ,_limit_w("/controller/turn/limit_w", 0.5)
     ,_twist(new geometry_msgs::Twist)
