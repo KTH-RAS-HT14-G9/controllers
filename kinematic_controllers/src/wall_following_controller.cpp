@@ -5,7 +5,7 @@
 WallFollowingController::WallFollowingController(ros::NodeHandle &handle, 
                                                  double update_frequency)
     :ControllerBase(handle, update_frequency)
-    ,_kp("/controller/wall_follow/kp", 3.0)
+    ,_kp("/controller/wall_follow/kp", 4.0)
     ,wall_th("/controller/wall_follow/wall_th", 0.40)
     ,_active(false)
     ,_ch1(0)
