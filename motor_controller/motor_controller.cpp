@@ -23,6 +23,7 @@ MotorController::MotorController() :
     update_pid_params();
     twist_subscriber = handle.subscribe("/motor_controller/twist", 1, &MotorController::twistCallback, this);
     encoder_subscriber = handle.subscribe("/arduino/encoders", 10, &MotorController::encoderCallback, this);
+    reset_pid_subscriber = handle.subscribe("/controller/motor/reset", 1, &MotorController::resetPIDCallback, this);
     pwm_publisher = handle.advertise<ras_arduino_msgs::PWM>("/arduino/pwm", 10);
 }
 
@@ -41,6 +42,12 @@ void MotorController::encoderCallback(const ras_arduino_msgs::Encoders::ConstPtr
 {
     left_encoder_delta = encoder_data->delta_encoder1;
     right_encoder_delta = encoder_data->delta_encoder2;
+}
+
+void MotorController::resetPIDCallback(const std_msgs::Bool::ConstPtr& data)
+{
+    left_controller->reset();
+    right_controller->reset();
 }
 
 void MotorController::updatePWM()

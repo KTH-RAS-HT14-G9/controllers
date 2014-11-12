@@ -10,6 +10,7 @@
 #include <pid.h>
 #include <common/robot.h>
 #include <common/parameter.h>
+#include <std_msgs/Bool.h>
 
 class MotorController {
 
@@ -18,6 +19,7 @@ public:
     ~MotorController();
     void twistCallback(const geometry_msgs::Twist::ConstPtr &twist);
     void encoderCallback(const ras_arduino_msgs::Encoders::ConstPtr& encoder_data);
+    void resetPIDCallback(const std_msgs::Bool::ConstPtr& data);
     void updatePWM();
     void publishPWM() const;
     bool ok() const;
@@ -42,6 +44,7 @@ private:
     ros::NodeHandle handle;
     ros::Subscriber twist_subscriber;
     ros::Subscriber encoder_subscriber;
+    ros::Subscriber reset_pid_subscriber;
     ros::Publisher pwm_publisher;
 
     pid_1d * left_controller;
