@@ -1,17 +1,19 @@
 #include "motor_controller.h"
+#include <common/util.h>
 
-
+//------------------------------------------------------------------------------
+// Constructor - Deconstructor
 
 MotorController::MotorController() :
     linear_velocity(0.0), angular_velocity(0.0),
     left_encoder_delta(0), right_encoder_delta(0),
     left_pwm(0), right_pwm(0),
-    left_p("/pid/left_p", 12.5),
-    left_i("/pid/left_i", 1.0),
-    left_d("/pid/left_d", 0.5),
-    right_p("/pid/right_p", 11.0),
-    right_i("/pid/right_i", 1.0),
-    right_d("/pid/right_d", 0.82),
+    left_p("/pid/left_p", 0.75),
+    left_i("/pid/left_i", 0.1),
+    left_d("/pid/left_d", 0.2),
+    right_p("/pid/right_p", 0.5),
+    right_i("/pid/right_i", 0.1),
+    right_d("/pid/right_d", 0.2),
     left_const("/pid/left_const", 47),
     right_const("/pid/right_const", 42)
 {
@@ -32,6 +34,9 @@ MotorController::~MotorController() {
     delete right_controller;
 }
 
+//------------------------------------------------------------------------------
+// Callbacks
+
 void MotorController::twistCallback(const geometry_msgs::Twist::ConstPtr &twist)
 {
     linear_velocity = twist->linear.x;
@@ -50,26 +55,30 @@ void MotorController::resetPIDCallback(const std_msgs::Bool::ConstPtr& data)
     right_controller->reset();
 }
 
+//------------------------------------------------------------------------------
+// Methods
+
 void MotorController::updatePWM()
 {
     updateLeftPWM();
     updateRightPWM();
 }
 
-void MotorController::publishPWM() const
+void MotorController::publishPWM()
 {
     double estimated_left = estimated_angular_velocity(left_encoder_delta);
     double estimated_right = estimated_angular_velocity(right_encoder_delta);
     double target_left = left_target_angular_velocity();
     double target_right = right_target_angular_velocity();
 
+    ras_arduino_msgs::PWM pwm;
+    pwm.PWM1 = common::Clamp<int>((int)left_pwm + get_left_const(), -255, 255);;
+    pwm.PWM2 = common::Clamp<int>((int)right_pwm + get_right_const(), -255, 255);;
+
     ROS_INFO("current angvel l: %f, r: %f", estimated_left, estimated_right);
     ROS_INFO("target angvel l:%f, r:%f", target_left, target_right);
-    ROS_INFO("publishing l: %d, r: %d", left_pwm, right_pwm);
+    ROS_INFO("publishing l: %d, r: %d", pwm.PWM1, pwm.PWM2);
 
-    ras_arduino_msgs::PWM pwm;
-    pwm.PWM1 = left_pwm;
-    pwm.PWM2 = right_pwm;
     pwm_publisher.publish(pwm);
 }
 
@@ -97,18 +106,14 @@ void MotorController::updateLeftPWM()
 {
     double estimated = estimated_angular_velocity(left_encoder_delta);
     double target = left_target_angular_velocity();
-    left_pwm = get_left_const() + (int) left_controller->control_1d(estimated, target, 1.0/robot::prop::encoder_publish_frequency);
-    left_pwm = left_pwm > 255 ? 255: left_pwm;
-    left_pwm = left_pwm < -255 ? -255: left_pwm;
+    left_pwm += left_controller->control_1d(estimated, target, 1.0/robot::prop::encoder_publish_frequency);
 }
 
 void MotorController::updateRightPWM()
 {
     double estimated = estimated_angular_velocity(right_encoder_delta);
     double target = right_target_angular_velocity();
-    right_pwm = get_right_const() + (int) right_controller->control_1d(estimated, target, 1.0/robot::prop::encoder_publish_frequency);
-    right_pwm = right_pwm > 255 ? 255: right_pwm;
-    right_pwm = right_pwm < -255 ? -255:right_pwm;
+    right_pwm += right_controller->control_1d(estimated, target, 1.0/robot::prop::encoder_publish_frequency);
 }
 
 double MotorController::left_target_angular_velocity() const
@@ -122,21 +127,20 @@ double MotorController::right_target_angular_velocity() const
 }
 
 int MotorController::get_left_const() {
-    if(linear_velocity > 0 || angular_velocity < 0)
-        return left_const();
-    if(linear_velocity < 0 || angular_velocity > 0)
-        return -left_const();
+	if (left_pwm < -5) return -left_const();
+	if (left_pwm > +5) return +left_const();
     return 0;
 }
 
 int MotorController::get_right_const() {
-    if(linear_velocity > 0 || angular_velocity > 0)
-        return right_const();
-    if(linear_velocity < 0 || angular_velocity < 0)
-        return -right_const();
+	if (right_pwm < -5) return -right_const();
+	if (right_pwm > +5) return +right_const();
     return 0;
 
 }
+
+//------------------------------------------------------------------------------
+// Entry point
 
 int main(int argc, char **argv)
 {
