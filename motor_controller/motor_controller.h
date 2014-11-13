@@ -21,7 +21,7 @@ public:
     void encoderCallback(const ras_arduino_msgs::Encoders::ConstPtr& encoder_data);
     void resetPIDCallback(const std_msgs::Bool::ConstPtr& data);
     void updatePWM();
-    void publishPWM() const;
+    void publishPWM();
     bool ok() const;
     void update_pid_params();
 private:

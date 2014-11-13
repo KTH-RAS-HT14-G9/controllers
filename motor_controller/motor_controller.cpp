@@ -64,7 +64,7 @@ void MotorController::updatePWM()
     updateRightPWM();
 }
 
-void MotorController::publishPWM() const
+void MotorController::publishPWM()
 {
     double estimated_left = estimated_angular_velocity(left_encoder_delta);
     double estimated_right = estimated_angular_velocity(right_encoder_delta);
@@ -72,8 +72,8 @@ void MotorController::publishPWM() const
     double target_right = right_target_angular_velocity();
 
     ras_arduino_msgs::PWM pwm;
-    pwm.PWM1 = common::Clamp<double>((int)left_pwm + get_left_const(), -255, 255);;
-    pwm.PWM2 = common::Clamp<double>((int)right_pwm + get_right_const(), -255, 255);;
+    pwm.PWM1 = common::Clamp<int>((int)left_pwm + get_left_const(), -255, 255);;
+    pwm.PWM2 = common::Clamp<int>((int)right_pwm + get_right_const(), -255, 255);;
 
     ROS_INFO("current angvel l: %f, r: %f", estimated_left, estimated_right);
     ROS_INFO("target angvel l:%f, r:%f", target_left, target_right);
