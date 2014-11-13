@@ -39,7 +39,7 @@ private:
 
     double linear_velocity, angular_velocity;
     int left_encoder_delta, right_encoder_delta;
-    int left_pwm, right_pwm;
+    double left_pwm, right_pwm;
 
     ros::NodeHandle handle;
     ros::Subscriber twist_subscriber;
