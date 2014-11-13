@@ -8,12 +8,12 @@ MotorController::MotorController() :
     linear_velocity(0.0), angular_velocity(0.0),
     left_encoder_delta(0), right_encoder_delta(0),
     left_pwm(0), right_pwm(0),
-    left_p("/pid/left_p", 12.5),
-    left_i("/pid/left_i", 1.0),
-    left_d("/pid/left_d", 0.5),
-    right_p("/pid/right_p", 11.0),
-    right_i("/pid/right_i", 1.0),
-    right_d("/pid/right_d", 0.82),
+    left_p("/pid/left_p", 0.75),
+    left_i("/pid/left_i", 0.1),
+    left_d("/pid/left_d", 0.2),
+    right_p("/pid/right_p", 0.5),
+    right_i("/pid/right_i", 0.1),
+    right_d("/pid/right_d", 0.2),
     left_const("/pid/left_const", 47),
     right_const("/pid/right_const", 42)
 {
@@ -106,7 +106,7 @@ void MotorController::updateLeftPWM()
 {
     double estimated = estimated_angular_velocity(left_encoder_delta);
     double target = left_target_angular_velocity();
-    left_pwm = left_controller->control_1d(estimated, target, 1.0/robot::prop::encoder_publish_frequency);
+    left_pwm += left_controller->control_1d(estimated, target, 1.0/robot::prop::encoder_publish_frequency);
 }
 
 void MotorController::updateRightPWM()
@@ -127,18 +127,14 @@ double MotorController::right_target_angular_velocity() const
 }
 
 int MotorController::get_left_const() {
-    if(linear_velocity > 0 || angular_velocity < 0)
-        return left_const();
-    if(linear_velocity < 0 || angular_velocity > 0)
-        return -left_const();
+	if (left_pwm < -5) return -left_const();
+	if (left_pwm > +5) return +left_const();
     return 0;
 }
 
 int MotorController::get_right_const() {
-    if(linear_velocity > 0 || angular_velocity > 0)
-        return right_const();
-    if(linear_velocity < 0 || angular_velocity < 0)
-        return -right_const();
+	if (right_pwm < -5) return -right_const();
+	if (right_pwm > +5) return +right_const();
     return 0;
 
 }
