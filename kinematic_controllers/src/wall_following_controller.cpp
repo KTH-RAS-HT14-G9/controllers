@@ -5,17 +5,14 @@
 WallFollowingController::WallFollowingController(ros::NodeHandle &handle, 
                                                  double update_frequency)
     :ControllerBase(handle, update_frequency)
-    ,_kp("/controller/wall_follow/kp", 4.0)
-    ,wall_th("/controller/wall_follow/wall_th", 0.40)
+    ,_kp_single("/controller/wall_follow/single/kp", 0.4)
+    ,_kp_double("/controller/wall_follow/double/kp", 0.4)
+    ,_wall_th("/controller/wall_follow/wall_th", 0.40)
     ,_active(false)
-    ,_ch1(0)
-    ,_ch2(0)
-    ,_ch3(0)
-    ,_ch4(0)
-    ,fl_side(0)
-    ,fr_side(0)
-    ,bl_side(0)
-    ,br_side(0)
+    ,_fl_side(0)
+    ,_fr_side(0)
+    ,_bl_side(0)
+    ,_br_side(0)
     ,_twist(new geometry_msgs::Twist)
 {
     _sub_sens = _handle.subscribe("/arduino/adc", 10,
@@ -27,15 +24,12 @@ WallFollowingController::WallFollowingController(ros::NodeHandle &handle,
 WallFollowingController::~WallFollowingController()
 {}
 
-void WallFollowingController::callback_sensors(const ras_arduino_msgs::ADConverter lecture) {
-    _ch1 = lecture.ch1;
-    _ch2 = lecture.ch2;
-    _ch3 = lecture.ch3;
-    _ch4 = lecture.ch4;
-    fl_side = robot::ir::distance(1,_ch1) + robot::ir::offset_front_left;
-    fr_side = robot::ir::distance(2,_ch2) + robot::ir::offset_front_right;
-    bl_side = robot::ir::distance(3,_ch3) + robot::ir::offset_rear_left;
-    br_side = robot::ir::distance(4,_ch4) + robot::ir::offset_rear_right;
+void WallFollowingController::callback_sensors(const ras_arduino_msgs::ADConverter adcs) {
+    using namespace robot::ir;
+    _fl_side = distance(id_front_left,    adcs.ch1) + offset_front_left;
+    _fr_side = distance(id_front_right,   adcs.ch2) + offset_front_right;
+    _bl_side = distance(id_rear_left,     adcs.ch3) + offset_rear_left;
+    _br_side = distance(id_rear_right,    adcs.ch4) + offset_rear_right;
     /*ROS_INFO("Distance fl(1): %f\n", fl_side);
     ROS_INFO("Distance fr(2): %f\n", fr_side);
     ROS_INFO("Distance bl(3): %f\n", bl_side);
@@ -50,21 +44,29 @@ geometry_msgs::TwistConstPtr WallFollowingController::update()
 {
     if (_active)
     {
-        if(bothWallsClose())
+        if(leftWallClose() && rightWallClose())
         {
-            //_twist->angular.z = pd::P_control(_kp(),fr_side+bl_side,fl_side+br_side);
-            _twist->angular.z = pd::P_control(_kp(),fr_side+bl_side+fr_side+br_side,fl_side+br_side+fl_side+bl_side);
+            //control sides
+//            _twist->angular.z += pd::P_control(_kp(),fl_side,bl_side);
+//            _twist->angular.z += pd::P_control(_kp(),fr_side,br_side);
+
+            //control adjacent distances
+            _twist->angular.z -= pd::P_control(_kp_single(),_fl_side,_fr_side);
+            _twist->angular.z += pd::P_control(_kp_single(),_bl_side,_br_side);
+
+            //_twist->angular.z = pd::P_control(_kp(),fr_side+bl_side+fr_side+br_side,fl_side+br_side+fl_side+bl_side);
 
         } else if (leftWallClose())
         {
-            _twist->angular.z = pd::P_control(_kp(),bl_side,fl_side);
+            _twist->angular.z += pd::P_control(_kp_single(),_bl_side,_fl_side);
 
         } else if (rightWallClose())
         {
-            _twist->angular.z = -pd::P_control(_kp(),br_side,fr_side);
+            _twist->angular.z += -pd::P_control(_kp_single(),_br_side,_fr_side);
 
         } else
         {
+            //TODO: consider following a continued wall
             _twist->angular.z = 0;
         }
     } else
@@ -75,17 +77,12 @@ geometry_msgs::TwistConstPtr WallFollowingController::update()
     return _twist;
 }
 
-bool WallFollowingController::bothWallsClose()
-{
-    return leftWallClose() && rightWallClose();
-}
-
 bool WallFollowingController::leftWallClose()
 {
-    return fl_side<wall_th() && bl_side<wall_th();
+    return _fl_side<_wall_th() && _bl_side<_wall_th();
 }
 
 bool WallFollowingController::rightWallClose()
 {
-    return fr_side<wall_th() && br_side<wall_th();
+    return _fr_side<_wall_th() && _br_side<_wall_th();
 }
