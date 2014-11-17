@@ -35,8 +35,8 @@ void TurnController::callback_encoders(const ras_arduino_msgs::EncodersConstPtr&
 
 TurnController::TurnController(ros::NodeHandle &handle, double update_frequency)
     :ControllerBase(handle, update_frequency)
-    ,_kp("/controller/turn/kp", 0.0001)
-    ,_kd("/controller/turn/kd", 0.0005)
+    ,_kp("/controller/turn/kp", 0.001)
+    ,_kd("/controller/turn/kd", 0.0)
     ,_convergence_threshold_w("/controller/turn/conv_thresh", 0.001)
     ,_encoder_threshold("/controller/turn/encoder_thresh", 2)
     ,_initial_w("/controller/turn/initial_w", 0.2)
@@ -74,7 +74,7 @@ geometry_msgs::TwistConstPtr TurnController::update()
 {
     if (_angle_to_rotate != 0)
     {
-        _w += control_angular_velocity();
+        _w = control_angular_velocity();
 
         int encoderDifference = _target(0) - _encoders(0);
         //double acceleration = (w-w_last)/dt;
