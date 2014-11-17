@@ -44,6 +44,9 @@ int main(int argc, char **argv)
     _pwm.PWM1 = 0;
     _pwm.PWM2 = 0;
 
+    _filter_left.filter(0);
+    _filter_right.filter(0);
+
     double time_to_increment = 0.5;
     double dt = time_to_increment;
 
@@ -54,9 +57,14 @@ int main(int argc, char **argv)
             if (!_lock_left) _pwm.PWM1 += 1;
             if (!_lock_right) _pwm.PWM2 += 1;
 
-            ROS_INFO("Publishing: %d, %d\n", _pwm.PWM1, _pwm.PWM2);
+            if (!_lock_left || !_lock_right) {
+                ROS_INFO("Publishing: %d, %d\n", _pwm.PWM1, _pwm.PWM2);
 
-            pub_pwm.publish(_pwm);
+                pub_pwm.publish(_pwm);
+            }
+            else {
+                break;
+            }
             dt = 0;
         }
         dt += 1.0/freq;
