@@ -1,21 +1,28 @@
 #include <ros/ros.h>
 #include <ras_arduino_msgs/Encoders.h>
 #include <ras_arduino_msgs/PWM.h>
+#include <common/lowpass_filter.h>
 
 bool _lock_left = false;
 bool _lock_right = false;
 
 ras_arduino_msgs::PWM _pwm;
 
+common::LowPassFilter _filter_left(0.5);
+common::LowPassFilter _filter_right(0.5);
+
 void callback_encoders(const ras_arduino_msgs::EncodersConstPtr& encoders)
 {
-    if (encoders->delta_encoder1 > 1)
+    double left = _filter_left.filter(encoders->delta_encoder1);
+    double right = _filter_right.filter(encoders->delta_encoder2);
+
+    if (std::abs(left) > 3)
     {
         _lock_left = true;
         ROS_INFO("Locking left. PWM = %d\n",_pwm.PWM1);
         _pwm.PWM1 = 0;
     }
-    if (encoders->delta_encoder2 > 1)
+    if (std::abs(right) > 3)
     {
         _lock_right = true;
         ROS_INFO("Locking right. PWM = %d\n",_pwm.PWM2);
