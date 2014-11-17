@@ -14,10 +14,10 @@ MotorController::MotorController()
     ,right_p("/pid/right_p", 0.5)
     ,right_i("/pid/right_i", 0.1)
     ,right_d("/pid/right_d", 0.2)
-    ,left_const("/pid/left_const", 47)
-    ,right_const("/pid/right_const", 42)
-    ,_lower_pwm_thresh("/pid/lower_thresh", 2)
-    ,_upper_pwm_thresh("/pid/upper_thresh", 5)
+    ,left_const("/pid/left_const", 30)
+    ,right_const("/pid/right_const", 30)
+    ,_lower_pwm_thresh("/pid/lower_thresh", 3)
+    ,_upper_pwm_thresh("/pid/upper_thresh", 10)
 {
     handle = ros::NodeHandle("");
 
