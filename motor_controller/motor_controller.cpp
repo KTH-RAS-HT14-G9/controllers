@@ -73,13 +73,17 @@ void MotorController::publishPWM()
     double target_left = left_target_angular_velocity();
     double target_right = right_target_angular_velocity();
 
+	ROS_INFO("pwms pure \t l: %d, r: %d", (int)left_pwm, (int)right_pwm);
+	ROS_INFO("pwm const \t l: %d, r: %d", get_left_const(), get_right_const());
+
     ras_arduino_msgs::PWM pwm;
     pwm.PWM1 = common::Clamp<int>((int)left_pwm + get_left_const(), -255, 255);;
     pwm.PWM2 = common::Clamp<int>((int)right_pwm + get_right_const(), -255, 255);;
 
-    ROS_INFO("current angvel l: %f, r: %f", estimated_left, estimated_right);
-    ROS_INFO("target angvel l:%f, r:%f", target_left, target_right);
-    ROS_INFO("publishing l: %d, r: %d", pwm.PWM1, pwm.PWM2);
+    ROS_INFO("current angvel \t l: %f, r: %f", estimated_left, estimated_right);
+    ROS_INFO("target angvel \t l:%f, r:%f", target_left, target_right);
+    ROS_INFO("publishing \t l: %d, r: %d", pwm.PWM1, pwm.PWM2);
+	ROS_INFO("------------------------------------------------\n");
 
     pwm_publisher.publish(pwm);
 }
