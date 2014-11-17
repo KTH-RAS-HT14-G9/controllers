@@ -9,6 +9,7 @@
 #include <common/robot.h>
 #include <common/parameter.h>
 #include <std_msgs/Bool.h>
+#include <ir_converter/Distance.h>
 
 class WallFollowingController : public ControllerBase
 {
@@ -22,7 +23,7 @@ public:
 private:
     //------------------------------------------------------------------------------
     // Method declarations
-    void callback_sensors(const ras_arduino_msgs::ADConverter lecture);
+    void callback_sensors(const ir_converter::DistanceConstPtr& distances);
     void callback_activate(const std_msgs::BoolConstPtr& val);
     bool leftWallClose();
     bool rightWallClose();

@@ -15,7 +15,7 @@ WallFollowingController::WallFollowingController(ros::NodeHandle &handle,
     ,_br_side(0)
     ,_twist(new geometry_msgs::Twist)
 {
-    _sub_sens = _handle.subscribe("/arduino/adc", 10,
+    _sub_sens = _handle.subscribe("/perception/ir/distance", 10,
                                   &WallFollowingController::callback_sensors, this);
     _sub_act = _handle.subscribe("/controller/wall_follow/active", 10,
                                  &WallFollowingController::callback_activate, this);
@@ -24,12 +24,13 @@ WallFollowingController::WallFollowingController(ros::NodeHandle &handle,
 WallFollowingController::~WallFollowingController()
 {}
 
-void WallFollowingController::callback_sensors(const ras_arduino_msgs::ADConverter adcs) {
+void WallFollowingController::callback_sensors(const ir_converter::DistanceConstPtr& distances) {
     using namespace robot::ir;
-    _fl_side = distance(id_front_left,    adcs.ch1) + offset_front_left;
-    _fr_side = distance(id_front_right,   adcs.ch2) + offset_front_right;
-    _bl_side = distance(id_rear_left,     adcs.ch3) + offset_rear_left;
-    _br_side = distance(id_rear_right,    adcs.ch4) + offset_rear_right;
+    _fl_side = distances->fl_side;
+    _fr_side = distances->fr_side;
+    _bl_side = distances->bl_side;
+    _br_side = distances->br_side;
+
     /*ROS_INFO("Distance fl(1): %f\n", fl_side);
     ROS_INFO("Distance fr(2): %f\n", fr_side);
     ROS_INFO("Distance bl(3): %f\n", bl_side);
@@ -51,8 +52,8 @@ geometry_msgs::TwistConstPtr WallFollowingController::update()
 //            _twist->angular.z += pd::P_control(_kp(),fr_side,br_side);
 
             //control adjacent distances
-            _twist->angular.z -= pd::P_control(_kp_single(),_fl_side,_fr_side);
-            _twist->angular.z += pd::P_control(_kp_single(),_bl_side,_br_side);
+            _twist->angular.z -= pd::P_control(_kp_double(),_fl_side,_fr_side);
+            _twist->angular.z += pd::P_control(_kp_double(),_bl_side,_br_side);
 
             //_twist->angular.z = pd::P_control(_kp(),fr_side+bl_side+fr_side+br_side,fl_side+br_side+fl_side+bl_side);
 
