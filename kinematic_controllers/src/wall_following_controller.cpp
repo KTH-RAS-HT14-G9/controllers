@@ -52,18 +52,17 @@ geometry_msgs::TwistConstPtr WallFollowingController::update()
 //            _twist->angular.z += pd::P_control(_kp(),fr_side,br_side);
 
             //control adjacent distances
-            _twist->angular.z -= pd::P_control(_kp_double(),_fl_side,_fr_side);
-            _twist->angular.z += pd::P_control(_kp_double(),_bl_side,_br_side);
+            _twist->angular.z = pd::P_control(_kp_double(),_bl_side,_br_side) - pd::P_control(_kp_double(),_fl_side,_fr_side);
 
             //_twist->angular.z = pd::P_control(_kp(),fr_side+bl_side+fr_side+br_side,fl_side+br_side+fl_side+bl_side);
 
         } else if (leftWallClose())
         {
-            _twist->angular.z += pd::P_control(_kp_single(),_bl_side,_fl_side);
+            _twist->angular.z = pd::P_control(_kp_single(),_bl_side,_fl_side);
 
         } else if (rightWallClose())
         {
-            _twist->angular.z += -pd::P_control(_kp_single(),_br_side,_fr_side);
+            _twist->angular.z = -pd::P_control(_kp_single(),_br_side,_fr_side);
 
         } else
         {

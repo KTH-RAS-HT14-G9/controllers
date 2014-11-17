@@ -18,10 +18,6 @@ MotorController::MotorController()
     ,right_const("/pid/right_const", 42)
     ,_lower_pwm_thresh("/pid/lower_thresh", 2)
     ,_upper_pwm_thresh("/pid/upper_thresh", 5)
-//    ,_hyst_left_pos(0, 0, 0, 0, 0, 0)
-//    ,_hyst_right_pos(0, 0, 0, 0, 0, 0)
-//    ,_hyst_left_neg(0, 0, 0, 0, 0, 0)
-//    ,_hyst_right_neg(0, 0, 0, 0, 0, 0)
 {
     handle = ros::NodeHandle("");
 
