@@ -4,18 +4,24 @@
 //------------------------------------------------------------------------------
 // Constructor - Deconstructor
 
-MotorController::MotorController() :
-    linear_velocity(0.0), angular_velocity(0.0),
-    left_encoder_delta(0), right_encoder_delta(0),
-    left_pwm(0), right_pwm(0),
-    left_p("/pid/left_p", 0.75),
-    left_i("/pid/left_i", 0.1),
-    left_d("/pid/left_d", 0.2),
-    right_p("/pid/right_p", 0.5),
-    right_i("/pid/right_i", 0.1),
-    right_d("/pid/right_d", 0.2),
-    left_const("/pid/left_const", 47),
-    right_const("/pid/right_const", 42)
+MotorController::MotorController()
+    :linear_velocity(0.0), angular_velocity(0.0)
+    ,left_encoder_delta(0), right_encoder_delta(0)
+    ,left_pwm(0), right_pwm(0)
+    ,left_p("/pid/left_p", 0.75)
+    ,left_i("/pid/left_i", 0.1)
+    ,left_d("/pid/left_d", 0.2)
+    ,right_p("/pid/right_p", 0.5)
+    ,right_i("/pid/right_i", 0.1)
+    ,right_d("/pid/right_d", 0.2)
+    ,left_const("/pid/left_const", 47)
+    ,right_const("/pid/right_const", 42)
+    ,_lower_pwm_thresh("/pid/lower_thresh", 2)
+    ,_upper_pwm_thresh("/pid/upper_thresh", 5)
+//    ,_hyst_left_pos(0, 0, 0, 0, 0, 0)
+//    ,_hyst_right_pos(0, 0, 0, 0, 0, 0)
+//    ,_hyst_left_neg(0, 0, 0, 0, 0, 0)
+//    ,_hyst_right_neg(0, 0, 0, 0, 0, 0)
 {
     handle = ros::NodeHandle("");
 
@@ -95,6 +101,13 @@ void MotorController::update_pid_params()
     right_controller->set_kp_1d(right_p());
     right_controller->set_ki_1d(right_i());
     right_controller->set_kd_1d(right_d());
+
+    int low = _lower_pwm_thresh();
+    int upp = _upper_pwm_thresh();
+    _hyst_left_pos.set(low, upp, 0, left_const());
+    _hyst_right_pos.set(low, upp, 0, right_const());
+    _hyst_left_neg.set(-upp, -low, -left_const(), 0);
+    _hyst_right_neg.set(-upp, -low, -right_const(), 0);
 }
 
 double MotorController::estimated_angular_velocity(int encoder_delta) const
@@ -127,14 +140,14 @@ double MotorController::right_target_angular_velocity() const
 }
 
 int MotorController::get_left_const() {
-	if (left_pwm < -5) return -left_const();
-	if (left_pwm > +5) return +left_const();
+    if (left_pwm > 0) return _hyst_left_pos.apply(left_pwm);
+    if (left_pwm < 0) return _hyst_left_neg.apply(left_pwm);
     return 0;
 }
 
 int MotorController::get_right_const() {
-	if (right_pwm < -5) return -right_const();
-	if (right_pwm > +5) return +right_const();
+    if (right_pwm > 0) return _hyst_right_pos.apply(right_pwm);
+    if (right_pwm < 0) return _hyst_right_neg.apply(right_pwm);
     return 0;
 
 }
