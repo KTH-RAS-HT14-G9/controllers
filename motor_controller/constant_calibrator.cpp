@@ -12,10 +12,14 @@ void callback_encoders(const ras_arduino_msgs::EncodersConstPtr& encoders)
     if (encoders->delta_encoder1 > 1)
     {
         _lock_left = true;
+        ROS_INFO("Locking left. PWM = %d\n",_pwm.PWM1);
+        _pwm.PWM1 = 0;
     }
     if (encoders->delta_encoder2 > 1)
     {
         _lock_right = true;
+        ROS_INFO("Locking right. PWM = %d\n",_pwm.PWM2);
+        _pwm.PWM2 = 0;
     }
 }
 
@@ -33,7 +37,7 @@ int main(int argc, char **argv)
     _pwm.PWM1 = 0;
     _pwm.PWM2 = 0;
 
-    double time_to_increment = 0.1;
+    double time_to_increment = 0.5;
     double dt = time_to_increment;
 
     while(n.ok())
