@@ -17,10 +17,14 @@ void TurnControllerTheta::callback_turn_angle(const std_msgs::Float64ConstPtr& d
         return;
     }
 
-    _angle_to_rotate = -deg->data;
+    _angle_to_rotate = deg->data;
+
+	for(;_angle_to_rotate >  180.0; _angle_to_rotate -= 360.0);
+    for(;_angle_to_rotate < -180.0; _angle_to_rotate += 360.0);
+
     double rad_to_rotate = _angle_to_rotate * M_PI / 180.0;
 
-    _theta_target = rad_to_rotate - _theta;
+    _theta_target = _theta + rad_to_rotate;
 }
 
 void TurnControllerTheta::callback_odom(const nav_msgs::OdometryConstPtr& odom)
@@ -32,6 +36,7 @@ void TurnControllerTheta::callback_odom(const nav_msgs::OdometryConstPtr& odom)
 
     _theta_last = _theta;
     _theta = q.getAngle();
+//	ROS_INFO("Current angle: %lf rad", _theta);
 }
 
 //------------------------------------------------------------------------------
@@ -39,13 +44,13 @@ void TurnControllerTheta::callback_odom(const nav_msgs::OdometryConstPtr& odom)
 
 TurnControllerTheta::TurnControllerTheta(ros::NodeHandle &handle, double update_frequency)
     :ControllerBase(handle, update_frequency)
-    ,_kp("/controller/turn/kp", 0.003)
+    ,_kp("/controller/turn/kp", 0.3)
     ,_kd("/controller/turn/kd", 0.0)
     ,_convergence_threshold_w("/controller/turn/conv_thresh_w", 0.003)
-    ,_convergence_threshold_theta("/controller/turn/conv_thresh_theta", 0.5*M_PI/180.0)
+    ,_convergence_threshold_theta("/controller/turn/conv_thresh_theta", 1.0*M_PI/180.0)
     ,_limit_w("/controller/turn/limit_w", 1.0)
     ,_twist(new geometry_msgs::Twist)
-    ,_theta(0)
+    ,_theta(M_PI/2.0)
 {
     _angle_to_rotate = 0;
 
