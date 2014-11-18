@@ -9,6 +9,8 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   common
   ras_arduino_msgs
+  nav_msgs
+  tf
 )
 
 ## System dependencies are found with CMake's conventions
@@ -111,6 +113,9 @@ add_library(controller_base
 add_library(turn_controller
   src/turn_controller.cpp
 )
+add_library(turn_controller_theta
+  src/turn_controller_theta.cpp
+)
 add_library(forward_controller
   src/forward_controller.cpp
 )
@@ -130,6 +135,7 @@ add_executable(controller_adapter src/controller_adapter.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(turn_controller controller_base)
+target_link_libraries(turn_controller_theta controller_base)
 target_link_libraries(forward_controller controller_base)
 target_link_libraries(wall_following_controller controller_base)
 
@@ -138,6 +144,7 @@ target_link_libraries(controller_adapter
   ${common_LIBRARIES}
   controller_base
   turn_controller
+  turn_controller_theta
   forward_controller
   wall_following_controller
 )
