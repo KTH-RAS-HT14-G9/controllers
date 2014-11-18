@@ -14,8 +14,8 @@ MotorController::MotorController()
     ,right_p("/pid/right_p", 0.5)
     ,right_i("/pid/right_i", 0.1)
     ,right_d("/pid/right_d", 0.2)
-    ,left_const("/pid/left_const", 30)
-    ,right_const("/pid/right_const", 30)
+    ,left_const("/pid/left_const", 40)
+    ,right_const("/pid/right_const", 40)
     ,_lower_pwm_thresh("/pid/lower_thresh", 3)
     ,_upper_pwm_thresh("/pid/upper_thresh", 10)
 {
@@ -131,12 +131,12 @@ void MotorController::updateRightPWM()
 
 double MotorController::left_target_angular_velocity() const
 {
-    return (linear_velocity - robot::dim::wheel_distance/2.0*angular_velocity)/robot::dim::wheel_radius;
+    return (linear_velocity - (robot::dim::wheel_distance/2.0)*angular_velocity)/robot::dim::wheel_radius;
 }
 
 double MotorController::right_target_angular_velocity() const
 {
-    return (linear_velocity + robot::dim::wheel_distance/2.0*angular_velocity)/robot::dim::wheel_radius;
+    return (linear_velocity + (robot::dim::wheel_distance/2.0)*angular_velocity)/robot::dim::wheel_radius;
 }
 
 int MotorController::get_left_const() {
@@ -149,7 +149,6 @@ int MotorController::get_right_const() {
     if (right_pwm > 0) return _hyst_right_pos.apply(right_pwm);
     if (right_pwm < 0) return _hyst_right_neg.apply(right_pwm);
     return 0;
-
 }
 
 //------------------------------------------------------------------------------
