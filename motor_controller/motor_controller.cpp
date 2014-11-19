@@ -106,8 +106,8 @@ void MotorController::update_pid_params()
     int upp = _upper_pwm_thresh();
     _hyst_left_pos.set(low, upp, 0, left_const());
     _hyst_right_pos.set(low, upp, 0, right_const());
-    _hyst_left_neg.set(-upp, -low, -left_const(), 0);
-    _hyst_right_neg.set(-upp, -low, -right_const(), 0);
+    _hyst_left_neg.set(-low, -upp, 0, -left_const());
+    _hyst_right_neg.set(-low, -upp, 0, -right_const());
 }
 
 double MotorController::estimated_angular_velocity(int encoder_delta) const
