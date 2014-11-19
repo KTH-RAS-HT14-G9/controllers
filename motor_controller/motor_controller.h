@@ -52,8 +52,8 @@ private:
     pid_1d * left_controller;
     pid_1d * right_controller;
 
-    common::Hysteresis<int> _hyst_left_pos, _hyst_right_pos;
-    common::Hysteresis<int> _hyst_left_neg, _hyst_right_neg;
+    common::GradientHysteresis<int> _hyst_left_pos, _hyst_right_pos;
+    common::GradientHysteresis<int> _hyst_left_neg, _hyst_right_neg;
 
 };
 
