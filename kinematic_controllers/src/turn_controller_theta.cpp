@@ -6,6 +6,11 @@
 
 #define SIGN(x) ( (x) < 0 ? -1.0 : ((x) > 0 ? 1.0 : 0.0) )
 
+double wrap_radians(double r)
+{
+	r += (r > M_PI) ? -M_PI*2.0 : (r < -M_PI) ? M_PI*2.0 : 0;
+	return r;
+}
 
 //------------------------------------------------------------------------------
 // Callbacks
@@ -24,19 +29,18 @@ void TurnControllerTheta::callback_turn_angle(const std_msgs::Float64ConstPtr& d
 
     double rad_to_rotate = _angle_to_rotate * M_PI / 180.0;
 
-    _theta_target = _theta + rad_to_rotate;
+    _theta_target = wrap_radians(_theta + rad_to_rotate);
 }
 
 void TurnControllerTheta::callback_odom(const nav_msgs::OdometryConstPtr& odom)
 {
-    tf::Quaternion q(odom->pose.pose.orientation.x,
-                     odom->pose.pose.orientation.y,
-                     odom->pose.pose.orientation.z,
-                     odom->pose.pose.orientation.w);
+//    tf::Quaternion q(odom->pose.pose.orientation.x,
+//                     odom->pose.pose.orientation.y,
+//                     odom->pose.pose.orientation.z,
+//                     odom->pose.pose.orientation.w);
 
     _theta_last = _theta;
-    _theta = q.getAngle();
-//	ROS_INFO("Current angle: %lf rad", _theta);
+    _theta = tf::getYaw(odom->pose.pose.orientation);
 }
 
 //------------------------------------------------------------------------------
@@ -71,9 +75,9 @@ void TurnControllerTheta::send_done_message(bool flag) {
 
 double TurnControllerTheta::control_angular_velocity()
 {
-    int32_t state = _theta_target - _theta;
-    int32_t state_last = _theta_target - _theta_last;
-    double w = -pd::PD_control(_kp(),_kd(),(double)state,0.0,(double)state_last,0,1.0/_update_frequency);
+	double state = wrap_radians(_theta_target - _theta);
+    double state_last = wrap_radians(_theta_target - _theta_last);
+    double w = pd::PD_control(_kp(),_kd(),state,0.0,state_last,0,1.0/_update_frequency);
 
     return w;
 }
@@ -84,10 +88,10 @@ geometry_msgs::TwistConstPtr TurnControllerTheta::update()
     {
         _w = control_angular_velocity();
 
-        double theta_diff = _theta_target - _theta;
+        double theta_diff = wrap_radians(_theta_target - _theta);
 
-        ROS_INFO("Theta diff: %lf\n", theta_diff);
-        ROS_INFO("Velocity: %lf\n\n", _w);
+        ROS_INFO("Target: %.2lf, Theta: %.2lf, Diff: %lf", _theta_target, _theta, theta_diff);
+        ROS_INFO("Velocity: \t %lf\n\n", _w);
 
         //stop rotating when the angular velocity is stabelized
         if (std::abs(theta_diff) < _convergence_threshold_theta() &&
