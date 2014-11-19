@@ -21,8 +21,9 @@ include_directories(include ${catkin_INCLUDE_DIRS}
 					"../etc")
 
 add_executable(motor_controller motor_controller.cpp)
-target_link_libraries(motor_controller ${catkin_LIBRARIES})
-target_link_libraries(motor_controller ${common_LIBRARIES})
+add_executable(constant_calibrator constant_calibrator.cpp)
+target_link_libraries(motor_controller ${catkin_LIBRARIES} ${common_LIBRARIES})
+target_link_libraries(constant_calibrator ${catkin_LIBRARIES} ${common_LIBRARIES})
 
 #############
 ## Install ##

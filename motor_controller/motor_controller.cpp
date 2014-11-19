@@ -4,18 +4,20 @@
 //------------------------------------------------------------------------------
 // Constructor - Deconstructor
 
-MotorController::MotorController() :
-    linear_velocity(0.0), angular_velocity(0.0),
-    left_encoder_delta(0), right_encoder_delta(0),
-    left_pwm(0), right_pwm(0),
-    left_p("/pid/left_p", 0.75),
-    left_i("/pid/left_i", 0.1),
-    left_d("/pid/left_d", 0.2),
-    right_p("/pid/right_p", 0.5),
-    right_i("/pid/right_i", 0.1),
-    right_d("/pid/right_d", 0.2),
-    left_const("/pid/left_const", 47),
-    right_const("/pid/right_const", 42)
+MotorController::MotorController()
+    :linear_velocity(0.0), angular_velocity(0.0)
+    ,left_encoder_delta(0), right_encoder_delta(0)
+    ,left_pwm(0), right_pwm(0)
+    ,left_p("/pid/left_p", 0.75)
+    ,left_i("/pid/left_i", 0.0)
+    ,left_d("/pid/left_d", 0.1)
+    ,right_p("/pid/right_p", 0.5)
+    ,right_i("/pid/right_i", 0.0)
+    ,right_d("/pid/right_d", 0.1)
+    ,left_const("/pid/left_const", 25)
+    ,right_const("/pid/right_const", 25)
+    ,_lower_pwm_thresh("/pid/lower_thresh", 0)
+    ,_upper_pwm_thresh("/pid/upper_thresh", 30)
 {
     handle = ros::NodeHandle("");
 
@@ -71,13 +73,17 @@ void MotorController::publishPWM()
     double target_left = left_target_angular_velocity();
     double target_right = right_target_angular_velocity();
 
+	ROS_INFO("pwms pure \t l: %d, r: %d", (int)left_pwm, (int)right_pwm);
+	ROS_INFO("pwm const \t l: %d, r: %d", get_left_const(), get_right_const());
+
     ras_arduino_msgs::PWM pwm;
     pwm.PWM1 = common::Clamp<int>((int)left_pwm + get_left_const(), -255, 255);;
     pwm.PWM2 = common::Clamp<int>((int)right_pwm + get_right_const(), -255, 255);;
 
-    ROS_INFO("current angvel l: %f, r: %f", estimated_left, estimated_right);
-    ROS_INFO("target angvel l:%f, r:%f", target_left, target_right);
-    ROS_INFO("publishing l: %d, r: %d", pwm.PWM1, pwm.PWM2);
+    ROS_INFO("current angvel \t l: %f, r: %f", estimated_left, estimated_right);
+    ROS_INFO("target angvel \t l:%f, r:%f", target_left, target_right);
+    ROS_INFO("publishing \t l: %d, r: %d", pwm.PWM1, pwm.PWM2);
+	ROS_INFO("------------------------------------------------\n");
 
     pwm_publisher.publish(pwm);
 }
@@ -95,6 +101,13 @@ void MotorController::update_pid_params()
     right_controller->set_kp_1d(right_p());
     right_controller->set_ki_1d(right_i());
     right_controller->set_kd_1d(right_d());
+
+    int low = _lower_pwm_thresh();
+    int upp = _upper_pwm_thresh();
+    _hyst_left_pos.set(low, upp, 0, left_const());
+    _hyst_right_pos.set(low, upp, 0, right_const());
+    _hyst_left_neg.set(-low, -upp, 0, -left_const());
+    _hyst_right_neg.set(-low, -upp, 0, -right_const());
 }
 
 double MotorController::estimated_angular_velocity(int encoder_delta) const
@@ -118,25 +131,34 @@ void MotorController::updateRightPWM()
 
 double MotorController::left_target_angular_velocity() const
 {
-    return (linear_velocity - robot::dim::wheel_distance/2.0*angular_velocity)/robot::dim::wheel_radius;
+    return (linear_velocity - (robot::dim::wheel_distance/2.0)*angular_velocity)/robot::dim::wheel_radius;
 }
 
 double MotorController::right_target_angular_velocity() const
 {
-    return (linear_velocity + robot::dim::wheel_distance/2.0*angular_velocity)/robot::dim::wheel_radius;
+    return (linear_velocity + (robot::dim::wheel_distance/2.0)*angular_velocity)/robot::dim::wheel_radius;
 }
 
 int MotorController::get_left_const() {
-	if (left_pwm < -5) return -left_const();
-	if (left_pwm > +5) return +left_const();
+    if (linear_velocity == 0 && angular_velocity == 0) {
+        _hyst_left_pos.apply(0);
+        _hyst_left_neg.apply(0);
+        return 0;
+    }
+    if (left_pwm > 0) return _hyst_left_pos.apply(left_pwm);
+    if (left_pwm < 0) return _hyst_left_neg.apply(left_pwm);
     return 0;
 }
 
 int MotorController::get_right_const() {
-	if (right_pwm < -5) return -right_const();
-	if (right_pwm > +5) return +right_const();
+    if (linear_velocity == 0 && angular_velocity == 0) {
+        _hyst_right_pos.apply(0);
+        _hyst_right_neg.apply(0);
+        return 0;
+    }
+    if (right_pwm > 0) return _hyst_right_pos.apply(right_pwm);
+    if (right_pwm < 0) return _hyst_right_neg.apply(right_pwm);
     return 0;
-
 }
 
 //------------------------------------------------------------------------------

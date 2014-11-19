@@ -2,13 +2,10 @@
 #include <geometry_msgs/Twist.h>
 #include "kinematic_controllers/controller_base.h"
 #include "kinematic_controllers/turn_controller.h"
+#include "kinematic_controllers/turn_controller_theta.h"
 #include "kinematic_controllers/forward_controller.h"
 #include "kinematic_controllers/wall_following_controller.h"
 
-//------------------------------------------------------------------------------
-// Constants
-
-const double PUBLISH_FREQUENCY = 10.0;
 
 //------------------------------------------------------------------------------
 // Member
@@ -23,13 +20,14 @@ int main(int argc, char **argv)
     ros::init(argc, argv, "controller_adapter");
 
     ros::NodeHandle nh;
-    ros::Publisher pub = nh.advertise<geometry_msgs::Twist>("/motor_controller/twist", 1);
-    ros::Rate loop_rate(PUBLISH_FREQUENCY);
+    ros::Publisher pub = nh.advertise<geometry_msgs::Twist>("/motor_controller/twist", 10);
+    ros::Rate loop_rate(robot::prop::encoder_publish_frequency);
 
     ControllerBase* controllers[] = {
-        new ForwardController(nh, PUBLISH_FREQUENCY),
-        new TurnController(nh, PUBLISH_FREQUENCY),
-        new WallFollowingController(nh, PUBLISH_FREQUENCY)
+        new ForwardController(nh, robot::prop::encoder_publish_frequency),
+        //new TurnController(nh, robot::prop::encoder_publish_frequency),
+        new TurnControllerTheta(nh, robot::prop::encoder_publish_frequency),
+        new WallFollowingController(nh, robot::prop::encoder_publish_frequency)
     };
     int nControllers = sizeof(controllers)/sizeof(ControllerBase*);
 

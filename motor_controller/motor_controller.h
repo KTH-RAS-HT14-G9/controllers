@@ -10,6 +10,7 @@
 #include <pid.h>
 #include <common/robot.h>
 #include <common/parameter.h>
+#include <common/util.h>
 #include <std_msgs/Bool.h>
 
 class MotorController {
@@ -36,6 +37,7 @@ private:
     Parameter<double> left_p, left_i, left_d;
     Parameter<double> right_p, right_i, right_d;
     Parameter<int> left_const, right_const;
+    Parameter<int> _lower_pwm_thresh, _upper_pwm_thresh;
 
     double linear_velocity, angular_velocity;
     int left_encoder_delta, right_encoder_delta;
@@ -49,6 +51,9 @@ private:
 
     pid_1d * left_controller;
     pid_1d * right_controller;
+
+    common::GradientHysteresis<int> _hyst_left_pos, _hyst_right_pos;
+    common::GradientHysteresis<int> _hyst_left_neg, _hyst_right_neg;
 
 };
 

@@ -35,11 +35,11 @@ void TurnController::callback_encoders(const ras_arduino_msgs::EncodersConstPtr&
 
 TurnController::TurnController(ros::NodeHandle &handle, double update_frequency)
     :ControllerBase(handle, update_frequency)
-    ,_kp("/controller/turn/kp", 0.0001)
-    ,_kd("/controller/turn/kd", 0.0005)
-    ,_convergence_threshold_w("/controller/turn/conv_thresh", 0.001)
-    ,_encoder_threshold("/controller/turn/encoder_thresh", 2)
-    ,_initial_w("/controller/turn/initial_w", 0.2)
+    ,_kp("/controller/turn/kp", 0.003)
+    ,_kd("/controller/turn/kd", 0.0)
+    ,_convergence_threshold_w("/controller/turn/conv_thresh", 0.003)
+    ,_encoder_threshold("/controller/turn/encoder_thresh", 3)
+    ,_initial_w("/controller/turn/initial_w", 0.0)
     ,_limit_w("/controller/turn/limit_w", 1.0)
     ,_twist(new geometry_msgs::Twist)
 	,_w(0)
@@ -74,7 +74,7 @@ geometry_msgs::TwistConstPtr TurnController::update()
 {
     if (_angle_to_rotate != 0)
     {
-        _w += control_angular_velocity();
+        _w = control_angular_velocity();
 
         int encoderDifference = _target(0) - _encoders(0);
         //double acceleration = (w-w_last)/dt;
@@ -84,8 +84,7 @@ geometry_msgs::TwistConstPtr TurnController::update()
 
         //stop rotating when the angular velocity is stabelized
         if (std::abs(encoderDifference) < _encoder_threshold() &&
-            std::abs(_w) < 0.3
-            //std::abs(acceleration) < _convergence_threshold_w
+            std::abs(_w) < _convergence_threshold_w()
                 )
         {
             _angle_to_rotate = 0;
