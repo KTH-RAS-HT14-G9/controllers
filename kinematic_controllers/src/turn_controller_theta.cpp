@@ -48,7 +48,7 @@ void TurnControllerTheta::callback_odom(const nav_msgs::OdometryConstPtr& odom)
 
 TurnControllerTheta::TurnControllerTheta(ros::NodeHandle &handle, double update_frequency)
     :ControllerBase(handle, update_frequency)
-    ,_kp("/controller/turn/kp", 0.3)
+    ,_kp("/controller/turn/kp", 0.5)
     ,_kd("/controller/turn/kd", 0.0)
     ,_convergence_threshold_w("/controller/turn/conv_thresh_w", 0.003)
     ,_convergence_threshold_theta("/controller/turn/conv_thresh_theta", 1.0*M_PI/180.0)
