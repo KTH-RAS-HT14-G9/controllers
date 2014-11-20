@@ -16,8 +16,10 @@ MotorController::MotorController()
     ,right_d("/pid/right_d", 0.1)
     ,left_const("/pid/left_const", 25)
     ,right_const("/pid/right_const", 25)
-    ,_lower_pwm_thresh("/pid/lower_thresh", 0)
-    ,_upper_pwm_thresh("/pid/upper_thresh", 30)
+    ,_power_pwm_left("/pid/power_pwm_left", 63)
+    ,_power_pwm_right("/pid/power_pwm_right", 64)
+    ,_sustain_pwm_left("/pid/sustain_pwm_left", 46)
+    ,_sustain_pwm_right("/pid/sustain_pwm_right", 47)
 {
     handle = ros::NodeHandle("");
 
@@ -102,12 +104,8 @@ void MotorController::update_pid_params()
     right_controller->set_ki_1d(right_i());
     right_controller->set_kd_1d(right_d());
 
-    int low = _lower_pwm_thresh();
-    int upp = _upper_pwm_thresh();
-    _hyst_left_pos.set(low, upp, 0, left_const());
-    _hyst_right_pos.set(low, upp, 0, right_const());
-    _hyst_left_neg.set(-low, -upp, 0, -left_const());
-    _hyst_right_neg.set(-low, -upp, 0, -right_const());
+    _spiker_left.set(_power_pwm_left(), _sustain_pwm_left());
+    _spiker_right.set(_power_pwm_right(), _sustain_pwm_right());
 }
 
 double MotorController::estimated_angular_velocity(int encoder_delta) const
@@ -140,25 +138,14 @@ double MotorController::right_target_angular_velocity() const
 }
 
 int MotorController::get_left_const() {
-    if (linear_velocity == 0 && angular_velocity == 0) {
-        _hyst_left_pos.apply(0);
-        _hyst_left_neg.apply(0);
-        return 0;
-    }
-    if (left_pwm > 0) return _hyst_left_pos.apply(left_pwm);
-    if (left_pwm < 0) return _hyst_left_neg.apply(left_pwm);
-    return 0;
+
+    return _spiker_left.apply(estimated_angular_velocity(left_encoder_delta), left_target_angular_velocity());
 }
 
 int MotorController::get_right_const() {
-    if (linear_velocity == 0 && angular_velocity == 0) {
-        _hyst_right_pos.apply(0);
-        _hyst_right_neg.apply(0);
-        return 0;
-    }
-    if (right_pwm > 0) return _hyst_right_pos.apply(right_pwm);
-    if (right_pwm < 0) return _hyst_right_neg.apply(right_pwm);
-    return 0;
+
+    return _spiker_right.apply(estimated_angular_velocity(right_encoder_delta), right_target_angular_velocity());
+
 }
 
 //------------------------------------------------------------------------------
