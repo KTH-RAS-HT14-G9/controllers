@@ -52,7 +52,7 @@ TurnControllerTheta::TurnControllerTheta(ros::NodeHandle &handle, double update_
     ,_kd("/controller/turn/kd", 0.0)
     ,_convergence_threshold_w("/controller/turn/conv_thresh_w", 0.003)
     ,_convergence_threshold_theta("/controller/turn/conv_thresh_theta", 1.0*M_PI/180.0)
-    ,_limit_w("/controller/turn/limit_w", 1.0)
+    ,_limit_w("/controller/turn/limit_w", 0.6)
     ,_twist(new geometry_msgs::Twist)
     ,_theta(M_PI/2.0)
 {
