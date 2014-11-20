@@ -13,18 +13,18 @@ int _step = 1;
 
 ras_arduino_msgs::PWM _pwm;
 
-common::LowPassFilter _filter_left(0.5);
-common::LowPassFilter _filter_right(0.5);
+common::LowPassFilter _filter_left(0.0);
+common::LowPassFilter _filter_right(0.0);
 
 void step1_auto_locking(double left, double right)
 {
-    if (std::abs(left) > 5)
+    if (std::abs(left) > 5 && !_lock_left)
     {
         _lock_left = true;
         _power_pwm_l = _pwm.PWM1;
         ROS_INFO("Min PWM to achieve movement left = %d\n",_pwm.PWM1);
     }
-    if (std::abs(right) > 5)
+    if (std::abs(right) > 5 && !_lock_right)
     {
         _lock_right = true;
         _power_pwm_r = _pwm.PWM2;
@@ -42,17 +42,17 @@ void step1_auto_locking(double left, double right)
 
 void step2_auto_locking(double left, double right)
 {
-    if (std::abs(left) < 1e-6)
+    if (std::abs(left) < 1 && !_lock_left)
     {
         _lock_left = true;
-        _sustain_pwm_l = _pwm.PWM1;
-        ROS_INFO("Max PWM to sustain movement left = %d\n",_pwm.PWM1);
+        _sustain_pwm_l = _pwm.PWM1+1;
+        ROS_INFO("Max PWM to sustain movement left = %d\n",_sustain_pwm_l);
     }
-    if (std::abs(right) < 1e-6)
+    if (std::abs(right) < 1 && !_lock_right)
     {
         _lock_right = true;
-        _sustain_pwm_r = _pwm.PWM2;
-        ROS_INFO("Max PWM to sustain movement right = %d\n",_pwm.PWM2);
+        _sustain_pwm_r = _pwm.PWM2+1;
+        ROS_INFO("Max PWM to sustain movement right = %d\n",_sustain_pwm_r);
     }
 
     if (_lock_left && _lock_right)
