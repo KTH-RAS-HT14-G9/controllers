@@ -115,6 +115,12 @@ void MotorController::updateLeftPWM()
 {
     double estimated = estimated_angular_velocity(left_encoder_delta);
     double target = left_target_angular_velocity();
+
+	if (target == 0) {
+		left_pwm = 0;
+		left_controller->reset();
+	}
+
     left_pwm += left_controller->control_1d(estimated, target, 1.0/robot::prop::encoder_publish_frequency);
 }
 
@@ -122,6 +128,12 @@ void MotorController::updateRightPWM()
 {
     double estimated = estimated_angular_velocity(right_encoder_delta);
     double target = right_target_angular_velocity();
+
+	if (target == 0) {
+		right_pwm = 0;
+		right_controller->reset();
+	}
+
     right_pwm += right_controller->control_1d(estimated, target, 1.0/robot::prop::encoder_publish_frequency);
 }
 
