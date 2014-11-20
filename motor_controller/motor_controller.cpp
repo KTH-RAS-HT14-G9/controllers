@@ -14,11 +14,9 @@ MotorController::MotorController()
     ,right_p("/pid/right_p", 0.5)
     ,right_i("/pid/right_i", 0.0)
     ,right_d("/pid/right_d", 0.1)
-    ,left_const("/pid/left_const", 25)
-    ,right_const("/pid/right_const", 25)
-    ,_power_pwm_left("/pid/power_pwm_left", 63)
+    ,_power_pwm_left("/pid/power_pwm_left", 65)
     ,_power_pwm_right("/pid/power_pwm_right", 64)
-    ,_sustain_pwm_left("/pid/sustain_pwm_left", 46)
+    ,_sustain_pwm_left("/pid/sustain_pwm_left", 48)
     ,_sustain_pwm_right("/pid/sustain_pwm_right", 47)
 {
     handle = ros::NodeHandle("");

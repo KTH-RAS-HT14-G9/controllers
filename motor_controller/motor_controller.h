@@ -37,7 +37,6 @@ private:
 
     Parameter<double> left_p, left_i, left_d;
     Parameter<double> right_p, right_i, right_d;
-    Parameter<int> left_const, right_const;
     Parameter<int> _power_pwm_left, _power_pwm_right;
     Parameter<int> _sustain_pwm_left, _sustain_pwm_right;
 

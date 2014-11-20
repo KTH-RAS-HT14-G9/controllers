@@ -18,7 +18,7 @@ public:
 
     int apply(double w_estimate, double w_desired)
     {
-        if (w_desired > 0) {
+        if (std::abs(w_desired) > 0) {
             if (std::abs(w_estimate) < 1e-6)
                 return SIGN(w_desired)*_power_pwm;
             else
