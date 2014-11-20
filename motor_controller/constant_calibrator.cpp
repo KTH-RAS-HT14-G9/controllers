@@ -3,31 +3,78 @@
 #include <ras_arduino_msgs/PWM.h>
 #include <common/lowpass_filter.h>
 
+int _power_pwm_l, _power_pwm_r;
+int _sustain_pwm_l, _sustain_pwm_r;
+
 bool _lock_left = false;
 bool _lock_right = false;
 
+int _step = 1;
+
 ras_arduino_msgs::PWM _pwm;
 
-common::LowPassFilter _filter_left(0.5);
-common::LowPassFilter _filter_right(0.5);
+common::LowPassFilter _filter_left(0.0);
+common::LowPassFilter _filter_right(0.0);
+
+void step1_auto_locking(double left, double right)
+{
+    if (std::abs(left) > 5 && !_lock_left)
+    {
+        _lock_left = true;
+        _power_pwm_l = _pwm.PWM1;
+        ROS_INFO("Min PWM to achieve movement left = %d\n",_pwm.PWM1);
+    }
+    if (std::abs(right) > 5 && !_lock_right)
+    {
+        _lock_right = true;
+        _power_pwm_r = _pwm.PWM2;
+        ROS_INFO("Min PWM to achieve moment right = %d\n",_pwm.PWM2);
+    }
+
+    if (_lock_left && _lock_right)
+    {
+        ROS_INFO("Commencing step 2. Decreasing PWMs until standing");
+        _step = 2;
+
+        _lock_left = _lock_right = false;
+    }
+}
+
+void step2_auto_locking(double left, double right)
+{
+    if (std::abs(left) < 1 && !_lock_left)
+    {
+        _lock_left = true;
+        _sustain_pwm_l = _pwm.PWM1+1;
+        ROS_INFO("Max PWM to sustain movement left = %d\n",_sustain_pwm_l);
+    }
+    if (std::abs(right) < 1 && !_lock_right)
+    {
+        _lock_right = true;
+        _sustain_pwm_r = _pwm.PWM2+1;
+        ROS_INFO("Max PWM to sustain movement right = %d\n",_sustain_pwm_r);
+    }
+
+    if (_lock_left && _lock_right)
+    {
+        ROS_INFO("Finished.");
+        ROS_INFO("Power pwms: %d, %d", _power_pwm_l, _power_pwm_r);
+        ROS_INFO("Sustain pwms: %d, %d", _sustain_pwm_l, _sustain_pwm_r);
+
+        _pwm.PWM1 = _pwm.PWM2 = 0;
+    }
+}
 
 void callback_encoders(const ras_arduino_msgs::EncodersConstPtr& encoders)
 {
     double left = _filter_left.filter(encoders->delta_encoder1);
     double right = _filter_right.filter(encoders->delta_encoder2);
 
-    if (std::abs(left) > 3)
-    {
-        _lock_left = true;
-        ROS_INFO("Locking left. PWM = %d\n",_pwm.PWM1);
-        _pwm.PWM1 = 0;
-    }
-    if (std::abs(right) > 3)
-    {
-        _lock_right = true;
-        ROS_INFO("Locking right. PWM = %d\n",_pwm.PWM2);
-        _pwm.PWM2 = 0;
-    }
+    if (_step == 1)
+        step1_auto_locking(left,right);
+    else
+        step2_auto_locking(left,right);
+
 }
 
 int main(int argc, char **argv)
@@ -41,21 +88,24 @@ int main(int argc, char **argv)
     const double freq = 100.0;
     ros::Rate rate(freq);
 
-    _pwm.PWM1 = 0;
-    _pwm.PWM2 = 0;
+    _pwm.PWM1 = 45;
+    _pwm.PWM2 = -40;
 
     _filter_left.filter(0);
     _filter_right.filter(0);
 
-    double time_to_increment = 0.5;
+    double time_to_increment = 0.2;
     double dt = time_to_increment;
 
     while(n.ok())
     {
+        int dpwm = 1;
+        if (_step == 2) dpwm = -dpwm;
+
         if (dt >= time_to_increment)
         {
-            if (!_lock_left) _pwm.PWM1 += 1;
-            if (!_lock_right) _pwm.PWM2 += 1;
+            if (!_lock_left) _pwm.PWM1 += dpwm;
+            if (!_lock_right) _pwm.PWM2 -= dpwm;
 
             if (!_lock_left || !_lock_right) {
                 ROS_INFO("Publishing: %d, %d\n", _pwm.PWM1, _pwm.PWM2);
