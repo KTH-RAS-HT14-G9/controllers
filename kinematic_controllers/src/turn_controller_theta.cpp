@@ -77,7 +77,7 @@ double TurnControllerTheta::control_angular_velocity()
 {
 	double state = wrap_radians(_theta_target - _theta);
     double state_last = wrap_radians(_theta_target - _theta_last);
-    double w = pd::PD_control(_kp(),_kd(),state,0.0,state_last,0,1.0/_update_frequency);
+    double w = -pd::PD_control(_kp(),_kd(),state,0.0,state_last,0,1.0/_update_frequency);
 
     return w;
 }
