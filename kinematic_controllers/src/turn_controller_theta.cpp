@@ -22,7 +22,7 @@ void TurnControllerTheta::callback_turn_angle(const std_msgs::Float64ConstPtr& d
         return;
     }
 
-    _angle_to_rotate = -deg->data;
+    _angle_to_rotate = deg->data;
 
 	for(;_angle_to_rotate >  180.0; _angle_to_rotate -= 360.0);
     for(;_angle_to_rotate < -180.0; _angle_to_rotate += 360.0);
