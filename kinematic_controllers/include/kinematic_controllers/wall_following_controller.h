@@ -36,9 +36,11 @@ private:
 
     //------------------------------------------------------------------------------
     // Parameter
-    Parameter<double> _kp_single;
-    Parameter<double> _kp_double;
+    Parameter<double> _kp_to_wall;
+    Parameter<double> _kp_from_wall;
     Parameter<double> _wall_th;
+    Parameter<double> _wall_target_dist;
+    Parameter<double> _kp_angular
 
     //------------------------------------------------------------------------------
     // Subscribers and publisher

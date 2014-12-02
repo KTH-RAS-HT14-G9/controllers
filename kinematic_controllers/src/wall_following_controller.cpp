@@ -5,9 +5,11 @@
 WallFollowingController::WallFollowingController(ros::NodeHandle &handle, 
                                                  double update_frequency)
     :ControllerBase(handle, update_frequency)
-    ,_kp_single("/controller/wall_follow/single/kp", 5.0)
-    ,_kp_double("/controller/wall_follow/double/kp", 5.0)
+    ,_kp_to_wall("/controller/wall_follow/kp/to_wall", 2.0)
+    ,_kp_from_wall("/controller/wall_follow/kp/from_wall", 5.0)
+    ,_kp_angular("/controller/wall_follow/kp/angular", 3.0)
     ,_wall_th("/controller/wall_follow/wall_th", 0.40)
+    ,_wall_target_dist("/controller/wall_follow/_wall_target_dist", 0.18)
     ,_active(false)
     ,_fl_side(0)
     ,_fr_side(0)
@@ -43,9 +45,10 @@ void WallFollowingController::callback_activate(const std_msgs::BoolConstPtr& va
 
 geometry_msgs::TwistConstPtr WallFollowingController::update()
 {
+
     if (_active)
     {
-        if(leftWallClose() && rightWallClose())
+       /* if(leftWallClose() && rightWallClose())
         {
             //control sides
 //            _twist->angular.z += pd::P_control(_kp(),fl_side,bl_side);
@@ -56,14 +59,36 @@ geometry_msgs::TwistConstPtr WallFollowingController::update()
 
             //_twist->angular.z = pd::P_control(_kp(),fr_side+bl_side+fr_side+br_side,fl_side+br_side+fl_side+bl_side);
 
-        } else if (leftWallClose())
-        {
-            _twist->angular.z = pd::P_control(_kp_single(),_bl_side,_fl_side);
+        } else*/ 
 
-        } else if (rightWallClose())
-        {
-            _twist->angular.z = -pd::P_control(_kp_single(),_br_side,_fr_side);
+            //###############################
+            //### P:s should be higher??? ### maybe put that back? --^
+            //###############################
+        _twist->angular.z = 0;
 
+        if (leftWallClose())
+        {
+            double dist = std::min(_bl_side,_fl_side);
+            if(dist > _wall_target_dist())
+            {
+                _twist->angular.z += pd::P_control(_kp_angular(),_bl_side, _fl_side) - pd::P_control(_kp_to_wall(),dist, _wall_target_dist());
+            } else {
+                _twist->angular.z += pd::P_control(_kp_angular(),_bl_side, _fl_side) - pd::P_control(_kp_from_wall(),dist, _wall_target_dist());
+            }
+
+         //   ROS_INFO("twist %f:",_twist->angular.z); 
+        }
+         if (rightWallClose())
+        {
+            double dist = std::min(_br_side,_fr_side);
+            if(dist > _wall_target_dist())
+            {
+            _twist->angular.z += -pd::P_control(_kp_angular(),_br_side,_fr_side) + pd::P_control(_kp_to_wall(),dist, _wall_target_dist());
+            } else {
+            _twist->angular.z += -pd::P_control(_kp_angular(),_br_side,_fr_side) + pd::P_control(_kp_from_wall(),dist, _wall_target_dist());
+            }
+
+        //    ROS_INFO("twist %f:",_twist->angular.z); 
         } else
         {
             //TODO: consider following a continued wall
