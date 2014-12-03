@@ -23,13 +23,13 @@ private:
 
     //------------------------------------------------------------------------------
     // Member
-    double _velocity;
     bool _active;
     bool _send_msg_flag;
     geometry_msgs::TwistPtr _twist;
 
     //------------------------------------------------------------------------------
     // Parameter
+    Parameter<double> _velocity;
     Parameter<double> _kp_a, _kp_b;
     Parameter<double> _stop_thresh;
 
