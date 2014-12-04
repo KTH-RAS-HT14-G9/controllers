@@ -136,7 +136,7 @@ add_executable(controller_adapter src/controller_adapter.cpp)
 ## Specify libraries to link a library or executable target against
 target_link_libraries(turn_controller controller_base)
 target_link_libraries(turn_controller_theta controller_base)
-target_link_libraries(forward_controller controller_base)
+target_link_libraries(forward_controller controller_base ${tf_LIBRARIES})
 target_link_libraries(wall_following_controller controller_base)
 
 target_link_libraries(controller_adapter
