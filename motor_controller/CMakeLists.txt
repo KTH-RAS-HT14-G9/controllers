@@ -4,6 +4,7 @@ project(motor_controller)
 find_package(catkin REQUIRED COMPONENTS roscpp ras_arduino_msgs)
 # std_msgs)
 find_package(common REQUIRED)
+find_package(ras_arduino_msgs REQUIRED)
 
 ################################################
 ## Declare ROS messages, services and actions ##
