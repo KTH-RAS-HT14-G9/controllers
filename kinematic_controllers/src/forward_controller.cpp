@@ -8,11 +8,11 @@ ForwardController::ForwardController(ros::NodeHandle &handle, double update_freq
     :ControllerBase(handle, update_frequency)
     ,_kp_a("/controller/forward/kp/accel", 0.05)
     ,_kp_b("/controller/forward/kp/break", 0.15)
-    ,_kp_b_wall("/controller/forward/kp/wall_break", 0.015)
+    ,_kp_b_wall("/controller/forward/kp/wall_break", 0.05)
     ,_stop_thresh("/controller/forward/stop_thresh", 0.01)
     ,_velocity("/controller/forward/velocity",0.2)
     ,_wall_time_thresh("/controller/forward/wall_time_thresh",2.0)
-    ,_wall_dist_thresh("/controller/forward/wall_dist_thresh",0.25)
+    ,_wall_dist_thresh("/controller/forward/wall_dist_thresh",0.40)
     ,_wall_target_dist("/controller/forward/wall_target_dist",0.05)
     ,_active(false)
     ,_twist(new geometry_msgs::Twist)
@@ -76,7 +76,7 @@ void ForwardController::callback_planes(const vision_msgs::PlanesConstPtr &plane
         try {
             geometry_msgs::PointStamped p_in, p_out;
             p_in.header.frame_id = "robot";
-            p_in.point.x = front_plane.plane_coefficients[0];
+            p_in.point.x = front_plane.bounding_box[0];
             p_in.point.y = 0;//front_plane.plane_coefficients[1];
             p_in.point.z = 0;
 
@@ -86,7 +86,7 @@ void ForwardController::callback_planes(const vision_msgs::PlanesConstPtr &plane
 
             _time_since_last_plane = ros::Time::now();
 
-            ROS_ERROR("Plane in front at: %.3lf, %.3lf, x= %.3lf", _front_wall_x, _front_wall_y, p_in.point.x);
+            //ROS_ERROR("Plane in front at: %.3lf, %.3lf, x= %.3lf", _front_wall_x, _front_wall_y, p_in.point.x);
         } catch(...) {
         }
     }
@@ -100,16 +100,16 @@ double euclidean_distance(double x0, double y0, double x1, double y1)
 void ForwardController::callback_odometry(const nav_msgs::OdometryConstPtr &odometry)
 {
     _dist_to_wall = euclidean_distance(_front_wall_x, _front_wall_y, odometry->pose.pose.position.x, odometry->pose.pose.position.y);
-    ROS_ERROR("Distance between: (%.3lf,%.3lf), (%.3lf,%.3lf) = %.3lf",_front_wall_x, _front_wall_y, odometry->pose.pose.position.x, odometry->pose.pose.position.y,_dist_to_wall);
+    //ROS_ERROR("Distance between: (%.3lf,%.3lf), (%.3lf,%.3lf) = %.3lf",_front_wall_x, _front_wall_y, odometry->pose.pose.position.x, odometry->pose.pose.position.y,_dist_to_wall);
 
-    _ray_marker = _markers.add_line(_front_wall_x, _front_wall_y, odometry->pose.pose.position.x, odometry->pose.pose.position.y, 0.1, 0.01, 0, 0, 255, _ray_marker);
+//    _ray_marker = _markers.add_line(_front_wall_x, _front_wall_y, odometry->pose.pose.position.x, odometry->pose.pose.position.y, 0.1, 0.01, 0, 0, 255, _ray_marker);
 
-    std::string label = static_cast<std::ostringstream*>( &(std::ostringstream() << _dist_to_wall) )->str();
-    float x = (_front_wall_x + odometry->pose.pose.position.x)/2.0f;
-    float y = (_front_wall_y + odometry->pose.pose.position.y)/2.0f;
-    _label_marker = _markers.add_text(x, y, 0.15, label, 0, 0, 255, _label_marker);
+//    std::string label = static_cast<std::ostringstream*>( &(std::ostringstream() << _dist_to_wall) )->str();
+//    float x = (_front_wall_x + odometry->pose.pose.position.x)/2.0f;
+//    float y = (_front_wall_y + odometry->pose.pose.position.y)/2.0f;
+//    _label_marker = _markers.add_text(x, y, 0.15, label, 0, 0, 255, _label_marker);
 
-    _pub_viz.publish(_markers.get());
+//    _pub_viz.publish(_markers.get());
 }
 
 geometry_msgs::TwistConstPtr ForwardController::update()
@@ -123,7 +123,7 @@ geometry_msgs::TwistConstPtr ForwardController::update()
             double target_dist = robot::dim::robot_diameter/2.0 + _wall_target_dist();
             _twist->linear.x += pd::P_control(_kp_b_wall(), _dist_to_wall, target_dist);
 
-            ROS_ERROR("Distance to wall: %.3lf",_dist_to_wall);
+            //ROS_ERROR("Distance to wall: %.3lf",_dist_to_wall);
 
             if (std::abs(_dist_to_wall - target_dist) < _stop_thresh() && _send_msg_flag == true) {
                 _twist->linear.x = 0;
