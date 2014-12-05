@@ -26,7 +26,7 @@ GotoController::GotoController(ros::NodeHandle &handle, double update_frequency)
 
     _pub_turn_angle = _handle.advertise<std_msgs::Float64>("/controller/turn/angle",10);
     _pub_activate_wall_follow = _handle.advertise<std_msgs::Bool>("/controller/wall_follow/active",10);
-    _pub_success = _handle.advertise<std_msgs::Bool>("/controller/goto", 10);
+    _pub_success = _handle.advertise<std_msgs::Bool>("/controller/goto/success", 10);
 
     reset();
 }
