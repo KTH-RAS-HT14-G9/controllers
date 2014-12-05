@@ -270,6 +270,7 @@ geometry_msgs::TwistConstPtr GotoController::update()
             std_msgs::Bool msg;
             msg.data = true;
             _pub_success.publish(msg);
+            reset();
             break;
         }
         case TARGET_UNREACHABLE:
@@ -278,6 +279,7 @@ geometry_msgs::TwistConstPtr GotoController::update()
             std_msgs::Bool msg;
             msg.data = false;
             _pub_success.publish(msg);
+            reset();
             break;
         }
         default:
