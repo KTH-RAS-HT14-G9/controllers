@@ -5,6 +5,7 @@
 #include "kinematic_controllers/turn_controller_theta.h"
 #include "kinematic_controllers/forward_controller.h"
 #include "kinematic_controllers/wall_following_controller.h"
+#include "kinematic_controllers/goto_controller.h"
 
 
 //------------------------------------------------------------------------------
@@ -27,7 +28,8 @@ int main(int argc, char **argv)
         new ForwardController(nh, robot::prop::encoder_publish_frequency),
         //new TurnController(nh, robot::prop::encoder_publish_frequency),
         new TurnControllerTheta(nh, robot::prop::encoder_publish_frequency),
-        new WallFollowingController(nh, robot::prop::encoder_publish_frequency)
+        new WallFollowingController(nh, robot::prop::encoder_publish_frequency),
+        new GotoController(nh, robot::prop::encoder_publish_frequency)
     };
     int nControllers = sizeof(controllers)/sizeof(ControllerBase*);
 
