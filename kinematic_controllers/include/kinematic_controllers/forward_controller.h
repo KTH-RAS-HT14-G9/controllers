@@ -7,6 +7,8 @@
 #include <std_msgs/Bool.h>
 #include <nav_msgs/Odometry.h>
 #include <vision_msgs/Planes.h>
+#include <common/marker_delegate.h>
+
 
 class ForwardController : public ControllerBase
 {
@@ -36,6 +38,9 @@ private:
     double _dist_to_wall;
     bool _continue_to_wall;
 
+    common::MarkerDelegate _markers;
+    int _ray_marker, _label_marker;
+
     //------------------------------------------------------------------------------
     // Parameter
     Parameter<double> _velocity;
@@ -50,7 +55,9 @@ private:
     ros::Subscriber _sub_vel;
     ros::Subscriber _sub_act;
     ros::Subscriber _sub_planes;
+    ros::Subscriber _sub_odom;
     ros::Publisher  _pub_stop;
+    ros::Publisher  _pub_viz;
 };
 
 
