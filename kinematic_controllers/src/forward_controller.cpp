@@ -8,7 +8,7 @@ ForwardController::ForwardController(ros::NodeHandle &handle, double update_freq
     :ControllerBase(handle, update_frequency)
     ,_kp_a("/controller/forward/kp/accel", 0.05)
     ,_kp_b("/controller/forward/kp/break", 0.15)
-    ,_kp_b_wall("/controller/forward/kp/wall_break", 0.15)
+    ,_kp_b_wall("/controller/forward/kp/wall_break", 0.015)
     ,_stop_thresh("/controller/forward/stop_thresh", 0.01)
     ,_velocity("/controller/forward/velocity",0.2)
     ,_wall_time_thresh("/controller/forward/wall_time_thresh",2.0)
