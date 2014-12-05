@@ -90,8 +90,8 @@ geometry_msgs::TwistConstPtr TurnControllerTheta::update()
 
         double theta_diff = wrap_radians(_theta_target - _theta);
 
-        ROS_INFO("Target: %.2lf, Theta: %.2lf, Diff: %lf", _theta_target, _theta, theta_diff);
-        ROS_INFO("Velocity: \t %lf\n\n", _w);
+        //ROS_INFO("Target: %.2lf, Theta: %.2lf, Diff: %lf", _theta_target, _theta, theta_diff);
+        //ROS_INFO("Velocity: \t %lf\n\n", _w);
 
         //stop rotating when the angular velocity is stabelized
         if (std::abs(theta_diff) < _convergence_threshold_theta() &&
@@ -102,7 +102,7 @@ geometry_msgs::TwistConstPtr TurnControllerTheta::update()
 
             send_done_message(true);
 
-            ROS_INFO("Target rotation reached.\n\n");
+            //ROS_INFO("Target rotation reached.\n\n");
         }
         else {
             _w_last = _w;

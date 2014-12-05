@@ -123,6 +123,9 @@ add_library(forward_controller
 add_library(wall_following_controller
   src/wall_following_controller.cpp
 )
+add_library(goto_controller
+  src/goto_controller.cpp
+)
 
 
 ## Declare a cpp executable
@@ -139,6 +142,7 @@ target_link_libraries(turn_controller controller_base)
 target_link_libraries(turn_controller_theta controller_base)
 target_link_libraries(forward_controller controller_base ${tf_LIBRARIES} ${pcl_ros_LIBRARIES})
 target_link_libraries(wall_following_controller controller_base)
+target_link_libraries(goto_controller controller_base)
 
 target_link_libraries(controller_adapter
   ${catkin_LIBRARIES}
@@ -148,6 +152,7 @@ target_link_libraries(controller_adapter
   turn_controller_theta
   forward_controller
   wall_following_controller
+  goto_controller
 )
 
 #############
