@@ -8,7 +8,7 @@ ForwardController::ForwardController(ros::NodeHandle &handle, double update_freq
     :ControllerBase(handle, update_frequency)
     ,_kp_a("/controller/forward/kp/accel", 0.05)
     ,_kp_b("/controller/forward/kp/break", 0.15)
-    ,_kp_b_wall("/controller/forward/kp/wall_break", 0.15)
+    ,_kp_b_wall("/controller/forward/kp/wall_break", 0.015)
     ,_stop_thresh("/controller/forward/stop_thresh", 0.01)
     ,_velocity("/controller/forward/velocity",0.2)
     ,_wall_time_thresh("/controller/forward/wall_time_thresh",2.0)
@@ -19,10 +19,15 @@ ForwardController::ForwardController(ros::NodeHandle &handle, double update_freq
     ,_send_msg_flag(false)
     ,_time_since_last_plane(0)
     ,_continue_to_wall(false)
+    ,_markers("map","dist_to_front_wall")
+    ,_label_marker(-1)
+    ,_ray_marker(-1)
 {
     _sub_act = _handle.subscribe("/controller/forward/active",   10, &ForwardController::callback_activate, this);
-    _sub_planes = _handle.subscribe("/vision/obstacles/planes", 10, &ForwardController::callback_planes, this);
+    _sub_planes = _handle.subscribe("/vision/obstacles/planes",  10, &ForwardController::callback_planes, this);
+    _sub_odom = _handle.subscribe("/pose/odometry/", 10, &ForwardController::callback_odometry, this);
     _pub_stop = _handle.advertise<std_msgs::Bool>("/controller/forward/stopped",10);
+    _pub_viz = _handle.advertise<visualization_msgs::MarkerArray>("visualization_marker_array", 10);
 }
 
 ForwardController::~ForwardController()
@@ -33,7 +38,7 @@ void ForwardController::callback_activate(const std_msgs::BoolConstPtr& val) {
     if (_active==true) _send_msg_flag = true;
     else {
         _continue_to_wall = false;
-        if ((ros::Time::now() - _time_since_last_plane).toSec() < _wall_time_thresh())
+        if ((ros::Time::now().toSec() - _time_since_last_plane.toSec()) < _wall_time_thresh())
         {
             if (_dist_to_wall < _wall_dist_thresh())
                 _continue_to_wall = true;
@@ -72,7 +77,7 @@ void ForwardController::callback_planes(const vision_msgs::PlanesConstPtr &plane
             geometry_msgs::PointStamped p_in, p_out;
             p_in.header.frame_id = "robot";
             p_in.point.x = front_plane.plane_coefficients[0];
-            p_in.point.y = front_plane.plane_coefficients[1];
+            p_in.point.y = 0;//front_plane.plane_coefficients[1];
             p_in.point.z = 0;
 
             tf_listener.transformPoint("map",p_in, p_out);
@@ -80,6 +85,8 @@ void ForwardController::callback_planes(const vision_msgs::PlanesConstPtr &plane
             _front_wall_y = p_out.point.y;
 
             _time_since_last_plane = ros::Time::now();
+
+            ROS_ERROR("Plane in front at: %.3lf, %.3lf, x= %.3lf", _front_wall_x, _front_wall_y, p_in.point.x);
         } catch(...) {
         }
     }
@@ -93,6 +100,16 @@ double euclidean_distance(double x0, double y0, double x1, double y1)
 void ForwardController::callback_odometry(const nav_msgs::OdometryConstPtr &odometry)
 {
     _dist_to_wall = euclidean_distance(_front_wall_x, _front_wall_y, odometry->pose.pose.position.x, odometry->pose.pose.position.y);
+    ROS_ERROR("Distance between: (%.3lf,%.3lf), (%.3lf,%.3lf) = %.3lf",_front_wall_x, _front_wall_y, odometry->pose.pose.position.x, odometry->pose.pose.position.y,_dist_to_wall);
+
+    _ray_marker = _markers.add_line(_front_wall_x, _front_wall_y, odometry->pose.pose.position.x, odometry->pose.pose.position.y, 0.1, 0.01, 0, 0, 255, _ray_marker);
+
+    std::string label = static_cast<std::ostringstream*>( &(std::ostringstream() << _dist_to_wall) )->str();
+    float x = (_front_wall_x + odometry->pose.pose.position.x)/2.0f;
+    float y = (_front_wall_y + odometry->pose.pose.position.y)/2.0f;
+    _label_marker = _markers.add_text(x, y, 0.15, label, 0, 0, 255, _label_marker);
+
+    _pub_viz.publish(_markers.get());
 }
 
 geometry_msgs::TwistConstPtr ForwardController::update()
@@ -115,6 +132,8 @@ geometry_msgs::TwistConstPtr ForwardController::update()
                 msg.data = true;
                 _pub_stop.publish(msg);
                 _send_msg_flag = false;
+
+                _continue_to_wall = false;
             }
 
         }
