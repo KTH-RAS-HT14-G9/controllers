@@ -11,13 +11,13 @@
 
 GotoController::GotoController(ros::NodeHandle &handle, double update_frequency)
     :ControllerBase(handle, update_frequency)
-    ,_kp("/controller/goto/foward_kp", 0.01)
+    ,_kp("/controller/goto/foward_kp", -0.6)
     ,_min_dist_to_succeed("/controller/goto/min_dist_to_succeed", robot::dim::wheel_distance/2.0)
     ,_velocity("/controller/forward/velocity",0.2)
     ,_phase(IDLE)
     ,_twist(new geometry_msgs::Twist)
     ,_dist_to_target(0)
-    ,_dist_convergence(0.75)
+    ,_dist_convergence(0.95)
 {
     _sub_node = _handle.subscribe("/controller/goto/target_node",  10, &GotoController::callback_target_node, this);
     _sub_odom = _handle.subscribe("/pose/odometry/", 10, &GotoController::callback_odometry, this);
@@ -37,6 +37,7 @@ GotoController::~GotoController()
 void GotoController::callback_target_node(const navigation_msgs::NodeConstPtr& node) {
     _target_node = *node;
     reset();
+    _phase = FIRST_TURN;
 }
 
 double euclidean_distance(double x0, double y0, double x1, double y1)
@@ -46,7 +47,7 @@ double euclidean_distance(double x0, double y0, double x1, double y1)
 
 void GotoController::callback_odometry(const nav_msgs::OdometryConstPtr &odometry)
 {
-    if (_phase != THIRD_FWD) return;
+    if (_phase == IDLE) return;
 
     _odom_x = odometry->pose.pose.position.x;
     _odom_y = odometry->pose.pose.position.y;
@@ -62,19 +63,24 @@ void GotoController::callback_odometry(const nav_msgs::OdometryConstPtr &odometr
 
 void GotoController::callback_turn_done(const std_msgs::BoolConstPtr &done)
 {
+    if (_phase == IDLE) return;
     _turn_done = done->data;
 }
 
 void GotoController::callback_ir(const ir_converter::DistanceConstPtr &distances)
 {
+    if (_phase == IDLE) return;
+
     if (distances->l_front < 0.25 || distances->r_front < 0.25) {
-        _break_due_to_obstacle = true;
-        ROS_ERROR("Emergency break due to obstacle");
+        _obstacle_ahead = true;
     }
+    else
+        _obstacle_ahead = false;
 }
 
 void GotoController::reset() {
-    _break_due_to_obstacle = false;
+    _obstacle_ahead = false;
+    _break = false;
 
     _fwd_vel = 0;
 
@@ -93,15 +99,14 @@ void GotoController::reset() {
 
     _twist->angular.z = 0;
     _twist->linear.x = 0;
-
-    _dist_convergence.init_to(1.0);
 }
 
 double GotoController::angle_between(Eigen::Vector2d& from, Eigen::Vector2d& to)
 {
-    double angle = acos(from.dot(to));
-    if (angle < -1.0) angle = -1.0;
-    else if (angle > 1.0) angle = 1.0;
+    double dot = from.dot(to);
+    if (dot < -1.0) dot = -1.0;
+    else if (dot > 1.0) dot = 1.0;
+    double angle = acos(dot);
 
     double crossZ = from(0) * to(1) - from(1) * to(0);
 
@@ -117,12 +122,14 @@ void GotoController::turn(double angle_rad) {
 
 void GotoController::execute_first_phase()
 {
-    if (_wait_for_turn_done && _turn_done) {
-        _phase++;
-        _wait_for_turn_done = false;
-        _turn_done = false;
+    if (_wait_for_turn_done) {
+        if (_turn_done) {
+            _phase++;
+            _wait_for_turn_done = false;
+            _turn_done = false;
 
-        ROS_INFO("Commencing phase %d",_phase);
+            ROS_INFO("Commencing phase %d",_phase);
+        }
     }
     else {
         Eigen::Vector2d forward(cos(_odom_theta), sin(_odom_theta));
@@ -131,22 +138,27 @@ void GotoController::execute_first_phase()
 
         _angle_to_obj = angle_between(forward, to_obj);
 
-        ROS_INFO("Angle to turn: %.3lf",_angle_to_obj);
-
         _wait_for_turn_done = true;
         _turn_done = false;
 
-        turn(_angle_to_obj);
+        if (std::abs(RAD2DEG(_angle_to_obj)) > 2.0 )
+            turn(_angle_to_obj);
+        else
+            _turn_done = true;
 
-        if (_angle_to_obj <= M_PI_4 && _angle_to_obj >= -M_PI_4) {
-            _phase++;
-        }
-        else {
-
-            if (_angle_to_obj > M_PI_4)
-                _angle_to_obj -= 90.0;
+        if (_angle_to_obj > M_PI_4)
+        {
+            if (_angle_to_obj < M_PI_2)
+                _angle_to_obj -= M_PI_2;
             else
-                _angle_to_obj += 90.0;
+                _angle_to_obj -= M_PI;
+        }
+        else if (_angle_to_obj < -M_PI_4)
+        {
+            if (_angle_to_obj > -M_PI_2)
+                _angle_to_obj += M_PI_2;
+            else
+                _angle_to_obj += M_PI;
         }
     }
 }
@@ -173,7 +185,9 @@ void GotoController::execute_third_phase()
 {
     double dist_diff = _dist_convergence.filter(std::abs(_last_dist_to_target - _dist_to_target));
 
-    if (dist_diff < 0.01)
+//    ROS_INFO("Current vel: %.3lf, Actual distance: %.3lf, Last distance: %.3lf, Dist diff %.3lf", _fwd_vel, _dist_to_target, _last_dist_to_target, dist_diff);
+
+    if (dist_diff < 0.0005)
     {
         _phase++;
         _fwd_vel = 0;
@@ -183,10 +197,10 @@ void GotoController::execute_third_phase()
         _pub_activate_wall_follow.publish(msg);
         _wall_following_active = false;
 
-        if (_break_due_to_obstacle)
+        if (_break)
             _phase = TARGET_UNREACHABLE;
 
-        _break_due_to_obstacle = false;
+        _break = false;
 
         ROS_INFO("Commencing phase %d",_phase);
     }
@@ -200,9 +214,12 @@ void GotoController::execute_third_phase()
             _wall_following_active = true;
         }
 
-        if (!_break_due_to_obstacle)
-            _fwd_vel += pd::P_control(_kp(), _dist_to_target , 0);
+        if (_obstacle_ahead) _break = true;
+
+        if (!_break)
+            _fwd_vel = pd::P_control(_kp(), _dist_to_target , 0);
         else {
+//            ROS_ERROR("Emergency break due to obstacle");
             double kp_break;
             ros::param::getCached("/controller/forward/kp/break",kp_break);
             _fwd_vel += pd::P_control(kp_break, _fwd_vel, 0);
@@ -212,29 +229,30 @@ void GotoController::execute_third_phase()
 
 void GotoController::execute_fourth_phase()
 {
-    if (_wait_for_turn_done && _turn_done) {
-        _wait_for_turn_done = false;
-        _turn_done = false;
+    if (_wait_for_turn_done) {
+        if (_turn_done) {
+            _wait_for_turn_done = false;
+            _turn_done = false;
 
 
-        if (_dist_to_target < _min_dist_to_succeed())
-        {
-            _phase++;
+            if (_dist_to_target < _min_dist_to_succeed())
+                _phase++;
+            else
+                _phase = TARGET_UNREACHABLE;
+
+            ROS_INFO("Commencing phase %d",_phase);
         }
-        else
-        {
-            _phase = TARGET_UNREACHABLE;
-        }
-
-        ROS_INFO("Commencing phase %d",_phase);
     }
     else {
         _wait_for_turn_done = true;
         _turn_done = false;
 
-        ROS_INFO("Angle to turn: %.3lf",-_angle_to_obj);
-
-        turn(-_angle_to_obj);
+        if (std::abs(RAD2DEG(_angle_to_obj)) > 2.0)
+            turn(-_angle_to_obj);
+        else
+        {
+            _turn_done = true;
+        }
     }
 }
 
@@ -242,15 +260,19 @@ geometry_msgs::TwistConstPtr GotoController::update()
 {
     if (_phase > IDLE) {
 
-
         switch(_phase) {
         case FIRST_TURN:
         {
             execute_first_phase();
+            break;
         }
         case SECOND_THETA_CORRECTION:
         {
             execute_second_phase();
+
+            if (_phase == THIRD_FWD)
+                _dist_convergence.init_to(_dist_to_target);
+
             break;
         }
         case THIRD_FWD:
@@ -296,3 +318,4 @@ geometry_msgs::TwistConstPtr GotoController::update()
     _twist->linear.x = common::Clamp<double>(_fwd_vel,-_velocity(), _velocity());
     return _twist;
 }
+

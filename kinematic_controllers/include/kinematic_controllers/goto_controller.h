@@ -68,7 +68,8 @@ private:
     bool _wall_following_active;
 
     //obstacle stuff
-    bool _break_due_to_obstacle;
+    bool _obstacle_ahead;
+    bool _break;
 
     //------------------------------------------------------------------------------
     // Parameter
@@ -90,3 +91,4 @@ private:
 
 
 #endif // GOTO_CONTROLLER_H
+
