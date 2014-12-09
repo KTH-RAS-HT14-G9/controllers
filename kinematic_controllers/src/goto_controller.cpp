@@ -65,12 +65,12 @@ void GotoController::simplify_path(const navigation_msgs::PathConstPtr &path, na
     result.clear();
     result.push_back(nodes[0]);
 
-    for (int i = 0; i < nodes.size();)
+    for (int i = 0; i < nodes.size()-1  ;)
     {
         int next = greedy_removal(nodes, i);
 
         if (i == next && i < nodes.size()) {
-            ROS_WARN("Unexpected case: Cannot reach next node %d from %d. Will go to %d anyway", next,i, next);
+            ROS_WARN("Unexpected case: Cannot reach next node %d from %d. Will go to %d anyway", i+1,i, i+1);
             next = i+1;
         }
 
@@ -168,7 +168,7 @@ void GotoController::callback_path(const navigation_msgs::PathConstPtr &path)
 
 void GotoController::callback_odometry(const nav_msgs::OdometryConstPtr &odometry)
 {
-    if (_phase == IDLE) return;
+    if (_phase == IDLE || _phase >= TARGET_REACHED) return;
 
     _odom_x = odometry->pose.pose.position.x;
     _odom_y = odometry->pose.pose.position.y;
@@ -331,8 +331,8 @@ void GotoController::execute_third_phase()
         _pub_activate_wall_follow.publish(msg);
         _wall_following_active = false;
 
-        if (_break)
-            _phase = TARGET_UNREACHABLE;
+       // if (_break)
+       //    _phase = TARGET_UNREACHABLE;
 
         _break = false;
 
@@ -394,6 +394,9 @@ geometry_msgs::TwistConstPtr GotoController::update()
 {
     if (_phase > IDLE) {
 
+        if (_dist_to_target < _min_dist_to_succeed())
+            _phase = TARGET_REACHED;
+
         switch(_phase) {
         case FIRST_TURN:
         {
@@ -424,7 +427,6 @@ geometry_msgs::TwistConstPtr GotoController::update()
             _next_node++;
             if (_next_node < _path.path.size()) {
                 ROS_INFO("Node %d reached. Continue to node %d", _path.path[_next_node-1].id_this, _path.path[_next_node].id_this);
-                reset();
                 _phase = FIRST_TURN;
             }
             else {
