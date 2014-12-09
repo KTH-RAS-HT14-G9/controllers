@@ -12,6 +12,7 @@
 #include <common/parameter.h>
 #include <common/util.h>
 #include <std_msgs/Bool.h>
+#include <std_msgs/Time.h>
 #include "PWMSpiker.h"
 
 class MotorController {
@@ -22,11 +23,15 @@ public:
     void twistCallback(const geometry_msgs::Twist::ConstPtr &twist);
     void encoderCallback(const ras_arduino_msgs::Encoders::ConstPtr& encoder_data);
     void resetPIDCallback(const std_msgs::Bool::ConstPtr& data);
+    void crashCallback(const std_msgs::TimeConstPtr& time);
+
     void updatePWM();
     void publishPWM();
-    bool ok() const;
+    inline bool ok() const {handle.ok();}
     void update_pid_params();
 private:
+    void timer_callback(const ros::TimerEvent& event);
+
     double estimated_angular_velocity(int encoder_delta) const;
     void updateLeftPWM();
     void updateRightPWM();
@@ -44,10 +49,14 @@ private:
     int left_encoder_delta, right_encoder_delta;
     double left_pwm, right_pwm;
 
+    bool _mute;
+
     ros::NodeHandle handle;
     ros::Subscriber twist_subscriber;
     ros::Subscriber encoder_subscriber;
     ros::Subscriber reset_pid_subscriber;
+    ros::Subscriber crash_subscriber;
+
     ros::Publisher pwm_publisher;
 
     pid_1d * left_controller;
