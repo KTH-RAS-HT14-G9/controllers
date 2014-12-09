@@ -312,7 +312,7 @@ void GotoController::execute_third_phase()
 {
     double dist_diff = _dist_convergence.filter(std::abs(_last_dist_to_target - _dist_to_target));
 
-    ROS_INFO("Current vel: %.3lf, Actual distance: %.3lf, Last distance: %.3lf, Dist diff %.3lf", _fwd_vel, _dist_to_target, _last_dist_to_target, dist_diff);
+//    ROS_INFO("Current vel: %.3lf, Actual distance: %.3lf, Last distance: %.3lf, Dist diff %.3lf", _fwd_vel, _dist_to_target, _last_dist_to_target, dist_diff);
 
     if (dist_diff < 0.0005)
     {
@@ -346,7 +346,7 @@ void GotoController::execute_third_phase()
         if (!_break)
             _fwd_vel = pd::P_control(_kp(), _dist_to_target , 0);
         else {
-            ROS_ERROR("Emergency break due to obstacle");
+//            ROS_ERROR("Emergency break due to obstacle");
             double kp_break;
             ros::param::getCached("/controller/forward/kp/break",kp_break);
             _fwd_vel += pd::P_control(kp_break, _fwd_vel, 0);
@@ -386,8 +386,6 @@ void GotoController::execute_fourth_phase()
 geometry_msgs::TwistConstPtr GotoController::update()
 {
     if (_phase > IDLE) {
-
-        ROS_ERROR("At phase. %d",_phase);
 
         switch(_phase) {
         case FIRST_TURN:
@@ -456,3 +454,4 @@ geometry_msgs::TwistConstPtr GotoController::update()
     ROS_ERROR("Twist z = %.3lf",_twist->angular.z);
     return _twist;
 }
+
