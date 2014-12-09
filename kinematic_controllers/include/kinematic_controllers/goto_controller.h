@@ -8,6 +8,8 @@
 #include <std_msgs/Bool.h>
 #include <nav_msgs/Odometry.h>
 #include <navigation_msgs/Node.h>
+#include <navigation_msgs/Path.h>
+#include <navigation_msgs/Raycast.h>
 #include <Eigen/Core>
 #include <ir_converter/Distance.h>
 
@@ -25,11 +27,18 @@ private:
     //------------------------------------------------------------------------------
     // Method declarations
     void callback_target_node(const navigation_msgs::NodeConstPtr& node);
+    void callback_path(const navigation_msgs::PathConstPtr& path);
+
     void callback_odometry(const nav_msgs::OdometryConstPtr& odometry);
     void callback_turn_done(const std_msgs::BoolConstPtr& done);
     void callback_ir(const ir_converter::DistanceConstPtr& distances);
 
     void reset();
+
+    void simplify_path(const navigation_msgs::PathConstPtr& path, navigation_msgs::Path& result);
+    bool straight_obstacle_free(double x0, double y0, double x1, double y1);
+    bool request_raycast(double x, double y, double dir_x, double dir_y, double max_length, double& dist);
+    int greedy_removal(const std::vector<navigation_msgs::Node>& nodes, int start);
 
     double angle_between(Eigen::Vector2d& from, Eigen::Vector2d& to);
     void turn(double angle_rad);
@@ -42,7 +51,8 @@ private:
     //------------------------------------------------------------------------------
     // Member
     geometry_msgs::TwistPtr _twist;
-    navigation_msgs::Node _target_node;
+    navigation_msgs::Path _path;
+    int _next_node;
     int _phase;
     double _dist_to_target;
     double _last_dist_to_target;
@@ -79,7 +89,7 @@ private:
 
     //------------------------------------------------------------------------------
     // Subscribers and publisher
-    ros::Subscriber _sub_node;
+    ros::Subscriber _sub_node, _sub_path;
     ros::Subscriber _sub_turn_done;
     ros::Subscriber _sub_odom;
     ros::Subscriber _sub_ir;
@@ -87,6 +97,10 @@ private:
     ros::Publisher _pub_turn_angle;
     ros::Publisher _pub_activate_wall_follow;
     ros::Publisher _pub_success;
+
+    //------------------------------------------------------------------------------
+    // Service Clients
+    ros::ServiceClient _srv_raycast;
 };
 
 

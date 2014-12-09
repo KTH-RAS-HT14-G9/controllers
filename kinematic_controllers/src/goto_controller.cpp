@@ -4,6 +4,7 @@
 #include <common/util.h>
 #include <tf/LinearMath/Matrix3x3.h>
 #include <pid.h>
+#include <navigation_msgs/NextNodeOfInterest.h>
 
 #define DEG2RAD(x) ((x)*M_PI/180.0)
 #define RAD2DEG(x) ((x)*180.0/M_PI)
@@ -19,7 +20,9 @@ GotoController::GotoController(ros::NodeHandle &handle, double update_frequency)
     ,_dist_to_target(0)
     ,_dist_convergence(0.95)
 {
-    _sub_node = _handle.subscribe("/controller/goto/target_node",  10, &GotoController::callback_target_node, this);
+    _sub_node = _handle.subscribe("/controller/goto/target_node", 10, &GotoController::callback_target_node, this);
+    _sub_path = _handle.subscribe("/controller/goto/follow_path", 10, &GotoController::callback_path, this);
+
     _sub_odom = _handle.subscribe("/pose/odometry/", 10, &GotoController::callback_odometry, this);
     _sub_turn_done = _handle.subscribe("/controller/turn/done", 10, &GotoController::callback_turn_done, this);
     _sub_ir = _handle.subscribe("/perception/ir/distance", 0.25, &GotoController::callback_ir, this);
@@ -28,21 +31,139 @@ GotoController::GotoController(ros::NodeHandle &handle, double update_frequency)
     _pub_activate_wall_follow = _handle.advertise<std_msgs::Bool>("/controller/wall_follow/active",10);
     _pub_success = _handle.advertise<std_msgs::Bool>("/controller/goto/success", 10);
 
+    _srv_raycast = _handle.serviceClient<navigation_msgs::Raycast>("/mapping/raycast");
+
     reset();
 }
 
 GotoController::~GotoController()
 {}
 
-void GotoController::callback_target_node(const navigation_msgs::NodeConstPtr& node) {
-    _target_node = *node;
-    reset();
-    _phase = FIRST_TURN;
+int GotoController::greedy_removal(const std::vector<navigation_msgs::Node>& nodes, int start)
+{
+    int end = start;
+    double x0 = nodes[start].x;
+    double y0 = nodes[start].y;
+
+    for (int i = start+1; i < nodes.size(); ++i)
+    {
+        double x1 = nodes[i].x;
+        double y1 = nodes[i].y;
+
+        if(!straight_obstacle_free(x0,y0, x1,y1))
+            return end;
+
+        end++;
+    }
+}
+
+void GotoController::simplify_path(const navigation_msgs::PathConstPtr &path, navigation_msgs::Path &result_path)
+{
+    const std::vector<navigation_msgs::Node>& nodes = path->path;
+    std::vector<navigation_msgs::Node>& result = result_path.path;
+
+    result.clear();
+    result.push_back(nodes[0]);
+
+    for (int i = 0; i < nodes.size();)
+    {
+        int next = greedy_removal(nodes, i);
+
+        if (i == next && i < nodes.size()) {
+            ROS_WARN("Unexpected case: Cannot reach next node %d from %d. Will go to %d anyway", next,i, next);
+            next = i+1;
+        }
+
+        result.push_back(nodes[next]);
+
+        i = next;
+    }
+}
+
+
+bool GotoController::straight_obstacle_free(double x0, double y0, double x1, double y1)
+{
+    Eigen::Vector2d dir(x1-x0, y1-y0);
+    Eigen::Vector2d origin(x0,y0);
+
+    double distance = (dir-origin).norm();
+    dir.normalize();
+
+    Eigen::Vector2d dir_ortho(-dir(1),dir(0));
+
+    //do three raycasts. one in the center, and two at the outer position of the robot
+    double dummy;
+    if (!request_raycast(origin(0),origin(1),dir(0),dir(1),distance,dummy))
+        return false;
+
+    Eigen::Vector2d left_origin = origin + dir_ortho*robot::dim::robot_diameter/2.0;
+    Eigen::Vector2d right_origin = origin - dir_ortho*robot::dim::robot_diameter/2.0;
+
+    if (!request_raycast(left_origin(0),left_origin(1),dir(0),dir(1),distance,dummy))
+        return false;
+    if (!request_raycast(right_origin(0),right_origin(1),dir(0),dir(1),distance,dummy))
+        return false;
+
+    return true;
+}
+
+bool GotoController::request_raycast(double x, double y, double dir_x, double dir_y, double max_length, double &dist)
+{
+    navigation_msgs::RaycastRequest request;
+    navigation_msgs::RaycastResponse response;
+
+    request.frame_id = "map";
+    request.origin_x = x;
+    request.origin_y = y;
+    request.dir_x = dir_x;
+    request.dir_y = dir_y;
+    request.max_length = max_length;
+
+    response.hit = false;
+    _srv_raycast.call(request, response);
+
+    if (response.hit) {
+        dist = response.hit_dist;
+        return true;
+    }
+
+    return false;
 }
 
 double euclidean_distance(double x0, double y0, double x1, double y1)
 {
     return sqrt((x1-x0)*(x1-x0) + (y1-y0)*(y1-y0));
+}
+
+void GotoController::callback_target_node(const navigation_msgs::NodeConstPtr& node) {
+
+    reset();
+
+    if (euclidean_distance(_odom_x,_odom_y, node->x, node->y) <= _min_dist_to_succeed())
+    {
+        _phase = TARGET_REACHED;
+        return;
+    }
+
+    _path.path.push_back(*node);
+
+    _phase = FIRST_TURN;
+    _next_node = 0;
+}
+
+void GotoController::callback_path(const navigation_msgs::PathConstPtr &path)
+{
+    reset();
+
+    if (path->path.empty()) {
+        _phase = TARGET_REACHED;
+        return;
+    }
+
+    simplify_path(path, _path);
+
+    _phase = FIRST_TURN;
+    _next_node = 0;
 }
 
 void GotoController::callback_odometry(const nav_msgs::OdometryConstPtr &odometry)
@@ -58,7 +179,8 @@ void GotoController::callback_odometry(const nav_msgs::OdometryConstPtr &odometr
     m.getRPY(dummy,dummy, _odom_theta);
 
     _last_dist_to_target = _dist_to_target;
-    _dist_to_target = euclidean_distance(_target_node.x, _target_node.y, _odom_x, _odom_y);
+    navigation_msgs::Node& next_node = _path.path[_next_node];
+    _dist_to_target = euclidean_distance(next_node.x, next_node.y, _odom_x, _odom_y);
 }
 
 void GotoController::callback_turn_done(const std_msgs::BoolConstPtr &done)
@@ -84,6 +206,8 @@ void GotoController::reset() {
 
     _fwd_vel = 0;
 
+    _path.path.clear();
+    _next_node = 0;
     _dist_to_target = 0;
     _last_dist_to_target = 0;
 
@@ -117,6 +241,7 @@ double GotoController::angle_between(Eigen::Vector2d& from, Eigen::Vector2d& to)
 void GotoController::turn(double angle_rad) {
     std_msgs::Float64 msg;
     msg.data = RAD2DEG(angle_rad);
+    ROS_ERROR("Angle to turn: %.3lf",msg.data);
     _pub_turn_angle.publish(msg);
 }
 
@@ -132,8 +257,10 @@ void GotoController::execute_first_phase()
         }
     }
     else {
+        navigation_msgs::Node& next_node = _path.path[_next_node];
+
         Eigen::Vector2d forward(cos(_odom_theta), sin(_odom_theta));
-        Eigen::Vector2d to_obj(_target_node.x - _odom_x, _target_node.y - _odom_y);
+        Eigen::Vector2d to_obj(next_node.x - _odom_x, next_node.y - _odom_y);
         to_obj.normalize();
 
         _angle_to_obj = angle_between(forward, to_obj);
@@ -287,12 +414,20 @@ geometry_msgs::TwistConstPtr GotoController::update()
         }
         case TARGET_REACHED:
         {
-            ROS_INFO("Target reached");
-            //send msg
-            std_msgs::Bool msg;
-            msg.data = true;
-            _pub_success.publish(msg);
-            reset();
+            _next_node++;
+            if (_next_node < _path.path.size()) {
+                ROS_INFO("Node %d reached. Continue to node %d", _path.path[_next_node-1].id_this, _path.path[_next_node].id_this);
+                reset();
+                _phase = FIRST_TURN;
+            }
+            else {
+                ROS_INFO("Target reached");
+                //send msg
+                std_msgs::Bool msg;
+                msg.data = true;
+                _pub_success.publish(msg);
+                reset();
+            }
             break;
         }
         case TARGET_UNREACHABLE:
@@ -316,6 +451,7 @@ geometry_msgs::TwistConstPtr GotoController::update()
     }
 
     _twist->linear.x = common::Clamp<double>(_fwd_vel,-_velocity(), _velocity());
+    ROS_ERROR("Twist z = %.3lf",_twist->angular.z);
     return _twist;
 }
 
