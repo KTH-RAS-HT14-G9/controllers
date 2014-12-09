@@ -200,6 +200,13 @@ void GotoController::callback_ir(const ir_converter::DistanceConstPtr &distances
         _obstacle_ahead = false;
 }
 
+void GotoController::hard_reset()
+{
+    if (_phase == IDLE) return;
+
+    _phase = HARD_STOP;
+}
+
 void GotoController::reset() {
     _obstacle_ahead = false;
     _break = false;
@@ -439,6 +446,15 @@ geometry_msgs::TwistConstPtr GotoController::update()
             reset();
             break;
         }
+        case HARD_STOP:
+        {
+            ROS_ERROR("[GotoController::update] Hard stop due to crash.");
+            std_msgs::Bool msg;
+            msg.data = false;
+            _pub_success.publish(msg);
+            reset();
+            break;
+        }
         default:
         {
             reset();
@@ -447,11 +463,8 @@ geometry_msgs::TwistConstPtr GotoController::update()
         }
 
     }
-    else {
-    }
 
     _twist->linear.x = common::Clamp<double>(_fwd_vel,-_velocity(), _velocity());
-    ROS_ERROR("Twist z = %.3lf",_twist->angular.z);
     return _twist;
 }
 

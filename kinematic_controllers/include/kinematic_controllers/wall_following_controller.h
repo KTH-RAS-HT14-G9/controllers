@@ -20,6 +20,8 @@ public:
 
     virtual geometry_msgs::TwistConstPtr update();
 
+    virtual void hard_reset();
+
 private:
     //------------------------------------------------------------------------------
     // Method declarations

@@ -12,6 +12,8 @@ public:
 
     virtual geometry_msgs::TwistConstPtr update();
 
+    virtual void hard_reset();
+
 protected:
     ros::NodeHandle _handle;
     double _update_frequency;

@@ -18,6 +18,7 @@ MotorController::MotorController()
     ,_power_pwm_right("/pid/power_pwm_right", 64)
     ,_sustain_pwm_left("/pid/sustain_pwm_left", 48)
     ,_sustain_pwm_right("/pid/sustain_pwm_right", 47)
+    ,_mute(false)
 {
     handle = ros::NodeHandle("");
 
@@ -25,9 +26,10 @@ MotorController::MotorController()
     right_controller = new pid_1d(right_p(), right_i(), right_d());
 
     update_pid_params();
-    twist_subscriber = handle.subscribe("/motor_controller/twist", 1, &MotorController::twistCallback, this);
+    twist_subscriber = handle.subscribe("/motor_controller/twist", 10, &MotorController::twistCallback, this);
     encoder_subscriber = handle.subscribe("/arduino/encoders", 10, &MotorController::encoderCallback, this);
-    reset_pid_subscriber = handle.subscribe("/controller/motor/reset", 1, &MotorController::resetPIDCallback, this);
+    reset_pid_subscriber = handle.subscribe("/controller/motor/reset", 10, &MotorController::resetPIDCallback, this);
+    crash_subscriber = handle.subscribe("/perception/imu/peak", 10, &MotorController::crashCallback, this);
     pwm_publisher = handle.advertise<ras_arduino_msgs::PWM>("/arduino/pwm", 10);
 }
 
@@ -57,13 +59,39 @@ void MotorController::resetPIDCallback(const std_msgs::Bool::ConstPtr& data)
     right_controller->reset();
 }
 
+void MotorController::timer_callback(const ros::TimerEvent &event)
+{
+    _mute = false;
+    ROS_ERROR("[MotorController::crashCallback] Ending hard reset");
+}
+
+void MotorController::crashCallback(const std_msgs::TimeConstPtr &time)
+{
+    linear_velocity = 0;
+    angular_velocity = 0;
+
+    left_pwm = 0;
+    right_pwm = 0;
+
+    left_controller->reset();
+    right_controller->reset();
+
+    _mute = true;
+    double seconds = 1.0;
+    timer = handle.createTimer(ros::Duration(seconds), &MotorController::timer_callback, this, true, true);
+
+    ROS_ERROR("[MotorController::crashCallback] Hard reset for %.2lf seconds",seconds);
+}
+
 //------------------------------------------------------------------------------
 // Methods
 
 void MotorController::updatePWM()
 {
-    updateLeftPWM();
-    updateRightPWM();
+    if (!_mute) {
+        updateLeftPWM();
+        updateRightPWM();
+    }
 }
 
 void MotorController::publishPWM()
@@ -86,11 +114,6 @@ void MotorController::publishPWM()
 	ROS_INFO("------------------------------------------------\n");
 
     pwm_publisher.publish(pwm);
-}
-
-bool MotorController::ok() const
-{
-    return handle.ok();
 }
 
 void MotorController::update_pid_params()

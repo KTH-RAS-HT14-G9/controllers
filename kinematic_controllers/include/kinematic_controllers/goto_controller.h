@@ -23,6 +23,8 @@ public:
 
     virtual geometry_msgs::TwistConstPtr update();
 
+    virtual void hard_reset();
+
 private:
     //------------------------------------------------------------------------------
     // Method declarations
@@ -67,6 +69,7 @@ private:
     enum { FOURTH_THETA_CORRECTION = 4};
     enum { TARGET_REACHED = 5};
     enum { TARGET_UNREACHABLE = 6};
+    enum { HARD_STOP = 7};
 
     //turning phases
     bool _wait_for_turn_done;
