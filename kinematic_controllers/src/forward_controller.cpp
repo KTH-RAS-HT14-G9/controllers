@@ -33,6 +33,22 @@ ForwardController::ForwardController(ros::NodeHandle &handle, double update_freq
 ForwardController::~ForwardController()
 {}
 
+void ForwardController::hard_reset()
+{
+    if (_active) {
+        _active = false;
+        _send_msg_flag = false;
+        _time_since_last_plane = ros::Time(0);
+        _continue_to_wall = false;
+
+        _twist->linear.x = 0;
+
+        std_msgs::Bool msg;
+        msg.data = false;
+        _pub_stop.publish(msg);
+    }
+}
+
 void ForwardController::callback_activate(const std_msgs::BoolConstPtr& val) {
     _active = val->data;
     if (_active==true) _send_msg_flag = true;

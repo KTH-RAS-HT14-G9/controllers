@@ -19,6 +19,8 @@ public:
 
     virtual geometry_msgs::TwistConstPtr update();
 
+    virtual void hard_reset();
+
 private:
     //------------------------------------------------------------------------------
     // Method declarations
@@ -56,6 +58,7 @@ private:
     ros::Subscriber _sub_act;
     ros::Subscriber _sub_planes;
     ros::Subscriber _sub_odom;
+
     ros::Publisher  _pub_stop;
     ros::Publisher  _pub_viz;
 };

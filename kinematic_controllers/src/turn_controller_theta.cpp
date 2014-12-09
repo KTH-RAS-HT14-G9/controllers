@@ -43,6 +43,15 @@ void TurnControllerTheta::callback_odom(const nav_msgs::OdometryConstPtr& odom)
     _theta = tf::getYaw(odom->pose.pose.orientation);
 }
 
+void TurnControllerTheta::hard_reset()
+{
+    _twist->angular.z = 0;
+    _angle_to_rotate = 0;
+    _w = _w_last = 0;
+
+    send_done_message(false);
+}
+
 //------------------------------------------------------------------------------
 // Methods
 
