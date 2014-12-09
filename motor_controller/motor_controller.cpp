@@ -78,7 +78,7 @@ void MotorController::crashCallback(const std_msgs::TimeConstPtr &time)
 
     _mute = true;
     double seconds = 1.0;
-    handle.createTimer(ros::Duration(seconds), &MotorController::timer_callback, this, true, true);
+    timer = handle.createTimer(ros::Duration(seconds), &MotorController::timer_callback, this, true, true);
 
     ROS_ERROR("[MotorController::crashCallback] Hard reset for %.2lf seconds",seconds);
 }

@@ -52,6 +52,7 @@ private:
     bool _mute;
 
     ros::NodeHandle handle;
+    ros::Timer timer;
     ros::Subscriber twist_subscriber;
     ros::Subscriber encoder_subscriber;
     ros::Subscriber reset_pid_subscriber;
