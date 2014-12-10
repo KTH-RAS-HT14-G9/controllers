@@ -28,8 +28,8 @@ protected:
 Police::Police(ros::NodeHandle& handle, double freq)
     :ControllerBase(handle, freq)
     ,_max_velocity("/controller/police/max_velocity",0.2)
-    ,_min_velocity("/controller/police/min_velocity",0.05)
-    ,_activate_when_closer_than("/controller/police/wall_thresh",0.16)
+    ,_min_velocity("/controller/police/min_velocity",0.01)
+    ,_activate_when_closer_than("/controller/police/wall_thresh",0.20)
 {
     _twist = geometry_msgs::TwistPtr(new geometry_msgs::Twist);
     _twist->angular.z = 0;
@@ -56,7 +56,7 @@ void Police::callback_ir(const ir_converter::DistanceConstPtr &distances)
 
     if (min_dist < _activate_when_closer_than())
     {
-        double closest = 0.12;
+        double closest = 0.15;
         double furthest = std::max(0.0, (_activate_when_closer_than() - closest));
 
         min_dist = std::max(0.0, min_dist-closest);
