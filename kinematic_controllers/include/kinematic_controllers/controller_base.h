@@ -10,6 +10,8 @@ public:
     ControllerBase(ros::NodeHandle& handle, double update_frequency);
     virtual ~ControllerBase();
 
+    virtual bool is_active();
+
     virtual geometry_msgs::TwistConstPtr update();
 
     virtual void hard_reset();

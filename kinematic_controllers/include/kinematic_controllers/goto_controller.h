@@ -21,6 +21,8 @@ public:
 
     ~GotoController();
 
+    virtual bool is_active();
+
     virtual geometry_msgs::TwistConstPtr update();
 
     virtual void hard_reset();
@@ -42,6 +44,7 @@ private:
     bool request_raycast(double x, double y, double dir_x, double dir_y, double max_length, double& dist);
     int greedy_removal(const std::vector<navigation_msgs::Node>& nodes, int start);
 
+    void update_distance_to_target();
     double angle_between(Eigen::Vector2d& from, Eigen::Vector2d& to);
     void turn(double angle_rad);
 
