@@ -39,13 +39,15 @@ int main(int argc, char **argv)
 
     ros::Subscriber sub_crash = nh.subscribe<std_msgs::Time>("/perception/imu/peak", 10, callback_crash);
 
+    ControllerBase* fwd_controller = new ForwardController(nh, robot::prop::encoder_publish_frequency);
+    ControllerBase* goto_controller = new GotoController(nh, robot::prop::encoder_publish_frequency);
+
     ControllerBase* controllers[] = {
         new Police(nh, robot::prop::encoder_publish_frequency),
-        new ForwardController(nh, robot::prop::encoder_publish_frequency),
-        //new TurnController(nh, robot::prop::encoder_publish_frequency),
+        fwd_controller,
         new TurnControllerTheta(nh, robot::prop::encoder_publish_frequency),
         new WallFollowingController(nh, robot::prop::encoder_publish_frequency),
-        new GotoController(nh, robot::prop::encoder_publish_frequency)
+        goto_controller
     };
     int nControllers = sizeof(controllers)/sizeof(ControllerBase*);
 
@@ -65,12 +67,15 @@ int main(int argc, char **argv)
                 controllers[i]->hard_reset();
             }
 
-            const geometry_msgs::TwistConstPtr twist = controllers[i]->update();
+            if (controllers[i] == fwd_controller && goto_controller->is_active())
+            {/* do not update forward controller */}
+            else {
+                const geometry_msgs::TwistConstPtr twist = controllers[i]->update();
 
-            //combine the twists blindly
-
-            _twist.angular.z += twist->angular.z;
-            _twist.linear.x += twist->linear.x;
+                //combine the twists blindly
+                _twist.angular.z += twist->angular.z;
+                _twist.linear.x += twist->linear.x;
+            }
         }
 
         if (_hard_reset) _hard_reset = false;
