@@ -17,6 +17,8 @@ public:
 
     ~ForwardController();
 
+    virtual bool is_active();
+
     virtual geometry_msgs::TwistConstPtr update();
 
     virtual void hard_reset();

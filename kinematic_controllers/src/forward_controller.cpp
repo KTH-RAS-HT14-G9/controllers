@@ -11,7 +11,7 @@ ForwardController::ForwardController(ros::NodeHandle &handle, double update_freq
     ,_kp_b_wall("/controller/forward/kp/wall_break", 0.05)
     ,_stop_thresh("/controller/forward/stop_thresh", 0.01)
     ,_velocity("/controller/forward/velocity",0.2)
-    ,_wall_time_thresh("/controller/forward/wall_time_thresh",2.0)
+    ,_wall_time_thresh("/controller/forward/wall_time_thresh",0.0)
     ,_wall_dist_thresh("/controller/forward/wall_dist_thresh",0.40)
     ,_wall_target_dist("/controller/forward/wall_target_dist",0.05)
     ,_active(false)
@@ -32,6 +32,11 @@ ForwardController::ForwardController(ros::NodeHandle &handle, double update_freq
 
 ForwardController::~ForwardController()
 {}
+
+bool ForwardController::is_active()
+{
+    return _send_msg_flag;
+}
 
 void ForwardController::hard_reset()
 {
