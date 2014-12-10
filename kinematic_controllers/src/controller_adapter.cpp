@@ -2,6 +2,7 @@
 #include <geometry_msgs/Twist.h>
 #include <std_msgs/Time.h>
 #include "kinematic_controllers/controller_base.h"
+#include "kinematic_controllers/police.h"
 #include "kinematic_controllers/turn_controller.h"
 #include "kinematic_controllers/turn_controller_theta.h"
 #include "kinematic_controllers/forward_controller.h"
@@ -42,6 +43,7 @@ int main(int argc, char **argv)
     ControllerBase* goto_controller = new GotoController(nh, robot::prop::encoder_publish_frequency);
 
     ControllerBase* controllers[] = {
+        new Police(nh, robot::prop::encoder_publish_frequency),
         fwd_controller,
         new TurnControllerTheta(nh, robot::prop::encoder_publish_frequency),
         new WallFollowingController(nh, robot::prop::encoder_publish_frequency),

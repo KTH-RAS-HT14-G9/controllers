@@ -22,6 +22,7 @@ GotoController::GotoController(ros::NodeHandle &handle, double update_frequency)
 {
     _sub_node = _handle.subscribe("/controller/goto/target_node", 10, &GotoController::callback_target_node, this);
     _sub_path = _handle.subscribe("/controller/goto/follow_path", 10, &GotoController::callback_path, this);
+    _sub_straight = _handle.subscribe("/controller/goto/straight", 10, &GotoController::callback_straight_distance, this);
 
     _sub_odom = _handle.subscribe("/pose/odometry/", 10, &GotoController::callback_odometry, this);
     _sub_turn_done = _handle.subscribe("/controller/turn/done", 10, &GotoController::callback_turn_done, this);
@@ -172,6 +173,31 @@ void GotoController::callback_path(const navigation_msgs::PathConstPtr &path)
     _next_node = 0;
 }
 
+void GotoController::callback_straight_distance(const std_msgs::Float64ConstPtr& dist)
+{
+    double cur_x = _odom_x;
+    double cur_y = _odom_y;
+    double cur_theta = _odom_theta;
+
+    double dir_x = cos(cur_theta);
+    double dir_y = sin(cur_theta);
+
+    double target_x = cur_x + dir_x*dist->data;
+    double target_y = cur_y + dir_y*dist->data;
+
+    navigation_msgs::Node target;
+    target.x = target_x;
+    target.y = target_y;
+
+    _path.path.push_back(target);
+
+    _phase = MOVE_STRAIGHT;
+    _angle_to_target = 0;
+    _next_node = 0;
+
+    _straight_direction = dist->data >= 0 ? 1.0 : -1.0;
+}
+
 void GotoController::callback_odometry(const nav_msgs::OdometryConstPtr &odometry)
 {
     _odom_x = odometry->pose.pose.position.x;
@@ -277,29 +303,29 @@ void GotoController::execute_first_phase()
         Eigen::Vector2d to_obj(next_node.x - _odom_x, next_node.y - _odom_y);
         to_obj.normalize();
 
-        _angle_to_obj = angle_between(forward, to_obj);
+        _angle_to_target = angle_between(forward, to_obj);
 
         _wait_for_turn_done = true;
         _turn_done = false;
 
-        if (std::abs(RAD2DEG(_angle_to_obj)) > 2.0 )
-            turn(_angle_to_obj);
+        if (std::abs(RAD2DEG(_angle_to_target)) > 2.0 )
+            turn(_angle_to_target);
         else
             _turn_done = true;
 
-        if (_angle_to_obj > M_PI_4)
+        if (_angle_to_target > M_PI_4)
         {
-            if (_angle_to_obj < M_PI_2)
-                _angle_to_obj -= M_PI_2;
+            if (_angle_to_target < M_PI_2)
+                _angle_to_target -= M_PI_2;
             else
-                _angle_to_obj -= M_PI;
+                _angle_to_target -= M_PI;
         }
-        else if (_angle_to_obj < -M_PI_4)
+        else if (_angle_to_target < -M_PI_4)
         {
-            if (_angle_to_obj > -M_PI_2)
-                _angle_to_obj += M_PI_2;
+            if (_angle_to_target > -M_PI_2)
+                _angle_to_target += M_PI_2;
             else
-                _angle_to_obj += M_PI;
+                _angle_to_target += M_PI;
         }
     }
 }
@@ -390,12 +416,27 @@ void GotoController::execute_fourth_phase()
         _wait_for_turn_done = true;
         _turn_done = false;
 
-        if (std::abs(RAD2DEG(_angle_to_obj)) > 2.0)
-            turn(-_angle_to_obj);
+        if (std::abs(RAD2DEG(_angle_to_target)) > 2.0)
+            turn(-_angle_to_target);
         else
         {
             _turn_done = true;
         }
+    }
+}
+
+void GotoController::execute_move_straight()
+{
+    double dist_diff = _dist_convergence.filter(std::abs(_last_dist_to_target - _dist_to_target));
+
+    if (dist_diff < 0.0005)
+    {
+        _fwd_vel = 0;
+        _phase = TARGET_REACHED;
+    }
+    else
+    {
+        _fwd_vel = pd::P_control(_kp(), _straight_direction*_dist_to_target , 0);
     }
 }
 
@@ -473,6 +514,11 @@ geometry_msgs::TwistConstPtr GotoController::update()
             msg.data = false;
             _pub_success.publish(msg);
             reset();
+            break;
+        }
+        case MOVE_STRAIGHT:
+        {
+            execute_move_straight();
             break;
         }
         default:
