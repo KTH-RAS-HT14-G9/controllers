@@ -2,6 +2,7 @@
 #include <geometry_msgs/Twist.h>
 #include <std_msgs/Time.h>
 #include "kinematic_controllers/controller_base.h"
+#include "kinematic_controllers/police.h"
 #include "kinematic_controllers/turn_controller.h"
 #include "kinematic_controllers/turn_controller_theta.h"
 #include "kinematic_controllers/forward_controller.h"
@@ -39,6 +40,7 @@ int main(int argc, char **argv)
     ros::Subscriber sub_crash = nh.subscribe<std_msgs::Time>("/perception/imu/peak", 10, callback_crash);
 
     ControllerBase* controllers[] = {
+        new Police(nh, robot::prop::encoder_publish_frequency),
         new ForwardController(nh, robot::prop::encoder_publish_frequency),
         //new TurnController(nh, robot::prop::encoder_publish_frequency),
         new TurnControllerTheta(nh, robot::prop::encoder_publish_frequency),
