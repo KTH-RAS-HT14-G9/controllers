@@ -28,7 +28,7 @@ protected:
 Police::Police(ros::NodeHandle& handle, double freq)
     :ControllerBase(handle, freq)
     ,_max_velocity("/controller/police/max_velocity",0.2)
-    ,_min_velocity("/controller/police/min_velocity",0.01)
+    ,_min_velocity("/controller/police/min_velocity",0.05)
     ,_activate_when_closer_than("/controller/police/wall_thresh",0.20)
 {
     _twist = geometry_msgs::TwistPtr(new geometry_msgs::Twist);
