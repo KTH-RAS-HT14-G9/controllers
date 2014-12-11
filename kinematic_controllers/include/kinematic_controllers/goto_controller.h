@@ -97,8 +97,8 @@ private:
     double _straight_direction;
 
     //shake
-    double _shake_times;
-    int   _shake_flag=0;
+    int _shake_times;
+    int _shake_flag;
 
 
     //------------------------------------------------------------------------------

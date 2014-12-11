@@ -177,6 +177,8 @@ void GotoController::callback_path(const navigation_msgs::PathConstPtr &path)
 
 void GotoController::callback_straight_distance(const std_msgs::Float64ConstPtr& dist)
 {
+    reset();
+
     double cur_x = _odom_x;
     double cur_y = _odom_y;
     double cur_theta = _odom_theta;
@@ -202,9 +204,11 @@ void GotoController::callback_straight_distance(const std_msgs::Float64ConstPtr&
 
 void GotoController::callback_shake(const std_msgs::Float64ConstPtr& time)
 {
- double shake_time=time->data;
- _shake_times=shake_time/_update_frequency;
+    reset();
 
+    double shake_time=time->data;
+    _shake_times=shake_time*_update_frequency;
+    _phase = SHAKE;
 }
 
 
@@ -253,6 +257,9 @@ void GotoController::hard_reset()
 void GotoController::reset() {
     _obstacle_ahead = false;
     _break = false;
+
+    _shake_flag=0;
+    _shake_times=0;
 
     _fwd_vel = 0;
 
@@ -454,17 +461,26 @@ void GotoController::execute_move_straight()
 
 void GotoController::execute_shake()
 {
+    if (_shake_times!=0)
+    {
+        if (_shake_flag){
+            _twist->linear.x=0.1;
+            _shake_flag=0;
+        }
+        else
+        {
+            _twist->linear.x=-0.1;
+            _shake_flag=1;
+        }
 
-    if (_shake_flag){
-    _twist->linear.x=0.1;
-    _shake_flag=0;
+        _shake_times-=1;
+
     }
     else
     {
-     _twist->linear.x=-0.1;
-     _shake_flag=1;
+        reset();
     }
-    _phase=SHAKE;
+
 }
 
 
@@ -552,11 +568,7 @@ geometry_msgs::TwistConstPtr GotoController::update()
         }
         case SHAKE:
         {
-            if (_shake_times!=0)
-            {
             execute_shake();
-            _shake_times=_shake_times-1;
-            }
             break;
         }
         default:
