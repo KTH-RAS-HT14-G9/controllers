@@ -33,6 +33,7 @@ private:
     void callback_target_node(const navigation_msgs::NodeConstPtr& node);
     void callback_path(const navigation_msgs::PathConstPtr& path);
     void callback_straight_distance(const std_msgs::Float64ConstPtr& dist);
+    void callback_shake(const std_msgs::Float64ConstPtr& time);
 
     void callback_odometry(const nav_msgs::OdometryConstPtr& odometry);
     void callback_turn_done(const std_msgs::BoolConstPtr& done);
@@ -54,6 +55,7 @@ private:
     void execute_third_phase();
     void execute_fourth_phase();
     void execute_move_straight();
+    void execute_shake();
 
     //------------------------------------------------------------------------------
     // Member
@@ -76,6 +78,7 @@ private:
     enum { TARGET_UNREACHABLE = 6};
     enum { HARD_STOP = 7};
     enum { MOVE_STRAIGHT = 8};
+    enum { SHAKE =9};
 
     //turning phases
     bool _wait_for_turn_done;
@@ -93,6 +96,11 @@ private:
     //move straigth
     double _straight_direction;
 
+    //shake
+    double _shake_times;
+    int   _shake_flag=0;
+
+
     //------------------------------------------------------------------------------
     // Parameter
     Parameter<double> _kp;
@@ -105,6 +113,7 @@ private:
     ros::Subscriber _sub_turn_done;
     ros::Subscriber _sub_odom;
     ros::Subscriber _sub_ir;
+    ros::Subscriber _sub_shake;
 
     ros::Publisher _pub_turn_angle;
     ros::Publisher _pub_activate_wall_follow;
