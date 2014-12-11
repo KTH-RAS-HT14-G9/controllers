@@ -61,6 +61,8 @@ int GotoController::greedy_removal(const std::vector<navigation_msgs::Node>& nod
 
         end++;
     }
+
+    return end;
 }
 
 void GotoController::simplify_path(const navigation_msgs::PathConstPtr &path, navigation_msgs::Path &result_path)
@@ -160,6 +162,13 @@ void GotoController::callback_path(const navigation_msgs::PathConstPtr &path)
         return;
     }
 
+    std::cout << "Original path: ";
+    for(int i = 0; i < path->path.size(); ++i)
+    {
+        std::cout << path->path[i].id_this << " ";
+    }
+    std::cout << std::endl;
+
     simplify_path(path, _path);
 
     std::cout << "Simplified path: ";
@@ -212,8 +221,10 @@ void GotoController::callback_odometry(const nav_msgs::OdometryConstPtr &odometr
 void GotoController::update_distance_to_target()
 {
     _last_dist_to_target = _dist_to_target;
-    navigation_msgs::Node& next_node = _path.path[_next_node];
-    _dist_to_target = euclidean_distance(next_node.x, next_node.y, _odom_x, _odom_y);
+    if (_next_node < _path.path.size()) {
+        navigation_msgs::Node& next_node = _path.path[_next_node];
+        _dist_to_target = euclidean_distance(next_node.x, next_node.y, _odom_x, _odom_y);
+        }
 }
 
 void GotoController::callback_turn_done(const std_msgs::BoolConstPtr &done)
