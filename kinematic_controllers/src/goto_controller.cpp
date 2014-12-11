@@ -461,7 +461,8 @@ void GotoController::execute_move_straight()
 
 void GotoController::execute_shake()
 {
-    if (_shake_times!=0)
+    _shake_times-=1;
+    if (_shake_times!=0 && _shake_times%10 ==0)
     {
         if (_shake_flag){
             _twist->linear.x=0.1;
@@ -473,10 +474,8 @@ void GotoController::execute_shake()
             _shake_flag=1;
         }
 
-        _shake_times-=1;
-
     }
-    else
+    if (_shake_times == 0)
     {
         reset();
     }
