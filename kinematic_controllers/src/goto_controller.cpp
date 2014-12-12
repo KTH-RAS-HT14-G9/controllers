@@ -15,6 +15,7 @@ GotoController::GotoController(ros::NodeHandle &handle, double update_frequency)
     ,_kp("/controller/goto/foward_kp", -0.6)
     ,_min_dist_to_succeed("/controller/goto/min_dist_to_succeed", robot::dim::wheel_distance/2.0)
     ,_velocity("/controller/forward/velocity",0.2)
+    ,_shake_vel("/controller/shake/velocity",0.005)
     ,_phase(IDLE)
     ,_twist(new geometry_msgs::Twist)
     ,_dist_to_target(0)
@@ -473,15 +474,15 @@ void GotoController::execute_move_straight()
 void GotoController::execute_shake()
 {
     _shake_times-=1;
-    if (_shake_times!=0 && _shake_times%10 ==0)
+    if (_shake_times!=0 && _shake_times%50 ==0)
     {
         if (_shake_flag){
-            _twist->linear.x=0.1;
+            _fwd_vel=_shake_vel();
             _shake_flag=0;
         }
         else
         {
-            _twist->linear.x=-0.1;
+            _fwd_vel=-_shake_vel();
             _shake_flag=1;
         }
 
