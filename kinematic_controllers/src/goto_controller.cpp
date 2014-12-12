@@ -23,6 +23,8 @@ GotoController::GotoController(ros::NodeHandle &handle, double update_frequency)
     _sub_node = _handle.subscribe("/controller/goto/target_node", 10, &GotoController::callback_target_node, this);
     _sub_path = _handle.subscribe("/controller/goto/follow_path", 10, &GotoController::callback_path, this);
     _sub_straight = _handle.subscribe("/controller/goto/straight", 10, &GotoController::callback_straight_distance, this);
+    _sub_shake = _handle.subscribe("/controller/goto/shake", 10, &GotoController::callback_shake, this);
+
 
     _sub_odom = _handle.subscribe("/pose/odometry/", 10, &GotoController::callback_odometry, this);
     _sub_turn_done = _handle.subscribe("/controller/turn/done", 10, &GotoController::callback_turn_done, this);
@@ -184,6 +186,8 @@ void GotoController::callback_path(const navigation_msgs::PathConstPtr &path)
 
 void GotoController::callback_straight_distance(const std_msgs::Float64ConstPtr& dist)
 {
+    reset();
+
     double cur_x = _odom_x;
     double cur_y = _odom_y;
     double cur_theta = _odom_theta;
@@ -206,6 +210,16 @@ void GotoController::callback_straight_distance(const std_msgs::Float64ConstPtr&
 
     _straight_direction = dist->data >= 0 ? 1.0 : -1.0;
 }
+
+void GotoController::callback_shake(const std_msgs::Float64ConstPtr& time)
+{
+    reset();
+
+    double shake_time=time->data;
+    _shake_times=shake_time*_update_frequency;
+    _phase = SHAKE;
+}
+
 
 void GotoController::callback_odometry(const nav_msgs::OdometryConstPtr &odometry)
 {
@@ -254,6 +268,9 @@ void GotoController::hard_reset()
 void GotoController::reset() {
     _obstacle_ahead = false;
     _break = false;
+
+    _shake_flag=0;
+    _shake_times=0;
 
     _fwd_vel = 0;
 
@@ -436,6 +453,8 @@ void GotoController::execute_fourth_phase()
     }
 }
 
+
+
 void GotoController::execute_move_straight()
 {
     double dist_diff = _dist_convergence.filter(std::abs(_last_dist_to_target - _dist_to_target));
@@ -450,6 +469,31 @@ void GotoController::execute_move_straight()
         _fwd_vel = pd::P_control(_kp(), _straight_direction*_dist_to_target , 0);
     }
 }
+
+void GotoController::execute_shake()
+{
+    _shake_times-=1;
+    if (_shake_times!=0 && _shake_times%10 ==0)
+    {
+        if (_shake_flag){
+            _twist->linear.x=0.1;
+            _shake_flag=0;
+        }
+        else
+        {
+            _twist->linear.x=-0.1;
+            _shake_flag=1;
+        }
+
+    }
+    if (_shake_times == 0)
+    {
+        reset();
+    }
+
+}
+
+
 
 geometry_msgs::TwistConstPtr GotoController::update()
 {
@@ -530,6 +574,11 @@ geometry_msgs::TwistConstPtr GotoController::update()
         case MOVE_STRAIGHT:
         {
             execute_move_straight();
+            break;
+        }
+        case SHAKE:
+        {
+            execute_shake();
             break;
         }
         default:
