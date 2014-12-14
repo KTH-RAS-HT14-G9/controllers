@@ -15,6 +15,7 @@ GotoController::GotoController(ros::NodeHandle &handle, double update_frequency)
     ,_kp("/controller/goto/foward_kp", -0.6)
     ,_min_dist_to_succeed("/controller/goto/min_dist_to_succeed", robot::dim::wheel_distance/2.0)
     ,_velocity("/controller/forward/velocity",0.2)
+    ,_shake_vel("/controller/shake/velocity",0.005)
     ,_phase(IDLE)
     ,_twist(new geometry_msgs::Twist)
     ,_dist_to_target(0)
@@ -101,17 +102,24 @@ bool GotoController::straight_obstacle_free(double x0, double y0, double x1, dou
 
     Eigen::Vector2d dir_ortho(-dir(1),dir(0));
 
-    //do three raycasts. one in the center, and two at the outer position of the robot
-    double dummy;
-    if (!request_raycast(origin(0),origin(1),dir(0),dir(1),distance,dummy))
-        return false;
-
     Eigen::Vector2d left_origin = origin + dir_ortho*robot::dim::robot_diameter/2.0;
     Eigen::Vector2d right_origin = origin - dir_ortho*robot::dim::robot_diameter/2.0;
 
-    if (!request_raycast(left_origin(0),left_origin(1),dir(0),dir(1),distance,dummy))
+    ROS_ERROR("Dir: (%.3lf, %.3lf), Origin: (%.3lf, %.3lf), Left: (%.3lf, %.3lf), Right: (%.3lf, %.3lf)", dir(0),dir(1), origin(0),origin(1), left_origin(0),left_origin(1),right_origin(0),right_origin(1));
+
+
+
+    //do three raycasts. one in the center, and two at the outer position of the robot
+    double dummy;
+    if (request_raycast(origin(0),origin(1),dir(0),dir(1),distance,dummy))
         return false;
-    if (!request_raycast(right_origin(0),right_origin(1),dir(0),dir(1),distance,dummy))
+
+//    Eigen::Vector2d left_origin = origin + dir_ortho*robot::dim::robot_diameter/2.0;
+//    Eigen::Vector2d right_origin = origin - dir_ortho*robot::dim::robot_diameter/2.0;
+
+    if (request_raycast(left_origin(0),left_origin(1),dir(0),dir(1),distance,dummy))
+        return false;
+    if (request_raycast(right_origin(0),right_origin(1),dir(0),dir(1),distance,dummy))
         return false;
 
     return true;
@@ -146,6 +154,26 @@ double euclidean_distance(double x0, double y0, double x1, double y1)
 }
 
 void GotoController::callback_target_node(const navigation_msgs::NodeConstPtr& node) {
+
+//    navigation_msgs::Node node0;
+//    node0.x = 0.3;
+//    node0.y = 0.0;
+
+//    navigation_msgs::Node node1;
+//    node1.x = 0.7;
+//    node1.y = -0.2;
+
+//    navigation_msgs::Node node2;
+//    node2.x = 0.4;
+//    node2.y = -0.5;
+
+//    navigation_msgs::PathPtr path = navigation_msgs::PathPtr(new navigation_msgs::Path);
+//    path->path.push_back(node0);
+//    path->path.push_back(node1);
+//    path->path.push_back(node2);
+
+//    callback_path(path);
+//    return;
 
     reset();
 
@@ -209,6 +237,9 @@ void GotoController::callback_straight_distance(const std_msgs::Float64ConstPtr&
     _next_node = 0;
 
     _straight_direction = dist->data >= 0 ? 1.0 : -1.0;
+
+    update_distance_to_target();
+    _dist_convergence.init_to(_dist_to_target);
 }
 
 void GotoController::callback_shake(const std_msgs::Float64ConstPtr& time)
@@ -238,13 +269,14 @@ void GotoController::update_distance_to_target()
     if (_next_node < _path.path.size()) {
         navigation_msgs::Node& next_node = _path.path[_next_node];
         _dist_to_target = euclidean_distance(next_node.x, next_node.y, _odom_x, _odom_y);
-        }
+    }
 }
 
 void GotoController::callback_turn_done(const std_msgs::BoolConstPtr &done)
 {
     if (_phase == IDLE) return;
     _turn_done = done->data;
+    ROS_INFO("Turn done");
 }
 
 void GotoController::callback_ir(const ir_converter::DistanceConstPtr &distances)
@@ -315,6 +347,10 @@ void GotoController::turn(double angle_rad) {
 
 void GotoController::execute_first_phase()
 {
+    if (_dist_to_target < _min_dist_to_succeed()) {
+        _phase = TARGET_REACHED;
+    }
+
     if (_wait_for_turn_done) {
         if (_turn_done) {
             _phase++;
@@ -424,33 +460,41 @@ void GotoController::execute_third_phase()
 
 void GotoController::execute_fourth_phase()
 {
-    if (_wait_for_turn_done) {
-        if (_turn_done) {
-            _wait_for_turn_done = false;
-            _turn_done = false;
-
-
-            if (_dist_to_target < _min_dist_to_succeed())
-                _phase++;
-            else {
-                ROS_ERROR("Failed fourth phase");
-                _phase = TARGET_UNREACHABLE;
-            }
-
-            ROS_INFO("Commencing phase %d",_phase);
-        }
-    }
+    if (_dist_to_target < _min_dist_to_succeed())
+        _phase++;
     else {
-        _wait_for_turn_done = true;
-        _turn_done = false;
-
-        if (std::abs(RAD2DEG(_angle_to_target)) > 2.0)
-            turn(-_angle_to_target);
-        else
-        {
-            _turn_done = true;
-        }
+        ROS_ERROR("Failed fourth phase");
+        _phase = TARGET_UNREACHABLE;
     }
+
+
+//    if (_wait_for_turn_done) {
+//        if (_turn_done) {
+//            _wait_for_turn_done = false;
+//            _turn_done = false;
+
+
+//            if (_dist_to_target < _min_dist_to_succeed())
+//                _phase++;
+//            else {
+//                ROS_ERROR("Failed fourth phase");
+//                _phase = TARGET_UNREACHABLE;
+//            }
+
+//            ROS_INFO("Commencing phase %d",_phase);
+//        }
+//    }
+//    else {
+//        _wait_for_turn_done = true;
+//        _turn_done = false;
+
+//        if (std::abs(RAD2DEG(_angle_to_target)) > 2.0)
+//            turn(-_angle_to_target);
+//        else
+//        {
+//            _turn_done = true;
+//        }
+//    }
 }
 
 
@@ -473,15 +517,15 @@ void GotoController::execute_move_straight()
 void GotoController::execute_shake()
 {
     _shake_times-=1;
-    if (_shake_times!=0 && _shake_times%10 ==0)
+    if (_shake_times!=0 && _shake_times%50 ==0)
     {
         if (_shake_flag){
-            _twist->linear.x=0.1;
+            _fwd_vel=_shake_vel();
             _shake_flag=0;
         }
         else
         {
-            _twist->linear.x=-0.1;
+            _fwd_vel=-_shake_vel();
             _shake_flag=1;
         }
 
@@ -506,10 +550,10 @@ geometry_msgs::TwistConstPtr GotoController::update()
             return _twist;
         }
 
-        if (_dist_to_target < _min_dist_to_succeed()) {
-            //ROS_ERROR("Node already reached");
-            _phase = TARGET_REACHED;
-        }
+//        if (_dist_to_target < _min_dist_to_succeed()) {
+//            //ROS_ERROR("Node already reached");
+//            _phase = TARGET_REACHED;
+//        }
 
         switch(_phase) {
         case FIRST_TURN:
@@ -533,7 +577,12 @@ geometry_msgs::TwistConstPtr GotoController::update()
         }
         case FOURTH_THETA_CORRECTION:
         {
-            execute_fourth_phase();
+            //if there is a node coming afterwards, don't turn
+            if (_next_node+1 < _path.path.size()) {
+                _phase++;
+            }
+            else
+                execute_fourth_phase();
             break;
         }
         case TARGET_REACHED:

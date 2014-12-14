@@ -106,6 +106,7 @@ private:
     Parameter<double> _kp;
     Parameter<double> _min_dist_to_succeed;
     Parameter<double> _velocity;
+    Parameter<double> _shake_vel;
 
     //------------------------------------------------------------------------------
     // Subscribers and publisher
