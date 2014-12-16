@@ -12,6 +12,7 @@
 #include <navigation_msgs/Raycast.h>
 #include <Eigen/Core>
 #include <ir_converter/Distance.h>
+#include <common/marker_delegate.h>
 
 
 class GotoController : public ControllerBase
@@ -59,6 +60,9 @@ private:
 
     //------------------------------------------------------------------------------
     // Member
+    common::MarkerDelegate _markers;
+    ros::Publisher _pub_viz;
+
     geometry_msgs::TwistPtr _twist;
     navigation_msgs::Path _path;
     int _next_node;

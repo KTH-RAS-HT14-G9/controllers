@@ -5,6 +5,7 @@
 #include <tf/LinearMath/Matrix3x3.h>
 #include <pid.h>
 #include <navigation_msgs/NextNodeOfInterest.h>
+#include <common/marker_delegate.h>
 
 #define DEG2RAD(x) ((x)*M_PI/180.0)
 #define RAD2DEG(x) ((x)*180.0/M_PI)
@@ -20,6 +21,7 @@ GotoController::GotoController(ros::NodeHandle &handle, double update_frequency)
     ,_twist(new geometry_msgs::Twist)
     ,_dist_to_target(0)
     ,_dist_convergence(0.95)
+    ,_markers("map","path_optimization")
 {
     _sub_node = _handle.subscribe("/controller/goto/target_node", 10, &GotoController::callback_target_node, this);
     _sub_path = _handle.subscribe("/controller/goto/follow_path", 10, &GotoController::callback_path, this);
@@ -36,6 +38,9 @@ GotoController::GotoController(ros::NodeHandle &handle, double update_frequency)
     _pub_success = _handle.advertise<std_msgs::Bool>("/controller/goto/success", 10);
 
     _srv_raycast = _handle.serviceClient<navigation_msgs::Raycast>("/mapping/raycast");
+
+
+    _pub_viz = _handle.advertise<visualization_msgs::MarkerArray>("visualization_marker_array",10);
 
     reset();
 }
@@ -102,17 +107,20 @@ bool GotoController::straight_obstacle_free(double x0, double y0, double x1, dou
 
     Eigen::Vector2d dir_ortho(-dir(1),dir(0));
 
-    //do three raycasts. one in the center, and two at the outer position of the robot
-    double dummy;
-    if (!request_raycast(origin(0),origin(1),dir(0),dir(1),distance,dummy))
-        return false;
-
     Eigen::Vector2d left_origin = origin + dir_ortho*robot::dim::robot_diameter/2.0;
     Eigen::Vector2d right_origin = origin - dir_ortho*robot::dim::robot_diameter/2.0;
 
-    if (!request_raycast(left_origin(0),left_origin(1),dir(0),dir(1),distance,dummy))
+    //do three raycasts. one in the center, and two at the outer position of the robot
+    double dummy;
+    if (request_raycast(origin(0),origin(1),dir(0),dir(1),distance,dummy))
         return false;
-    if (!request_raycast(right_origin(0),right_origin(1),dir(0),dir(1),distance,dummy))
+
+//    Eigen::Vector2d left_origin = origin + dir_ortho*robot::dim::robot_diameter/2.0;
+//    Eigen::Vector2d right_origin = origin - dir_ortho*robot::dim::robot_diameter/2.0;
+
+    if (request_raycast(left_origin(0),left_origin(1),dir(0),dir(1),distance,dummy))
+        return false;
+    if (request_raycast(right_origin(0),right_origin(1),dir(0),dir(1),distance,dummy))
         return false;
 
     return true;
@@ -200,6 +208,11 @@ void GotoController::callback_path(const navigation_msgs::PathConstPtr &path)
         std::cout << _path.path[i].id_this << " ";
     }
     std::cout << std::endl;
+
+
+    //make line
+    _markers.add_path(_path.path,0.025f,0.02f, 0, 255, 0, 0);
+    _pub_viz.publish(_markers.get());
 
     _phase = FIRST_TURN;
     _next_node = 0;
@@ -453,33 +466,37 @@ void GotoController::execute_third_phase()
 
 void GotoController::execute_fourth_phase()
 {
-    if (_wait_for_turn_done) {
-        if (_turn_done) {
-            _wait_for_turn_done = false;
-            _turn_done = false;
-
-
-            if (_dist_to_target < _min_dist_to_succeed())
-                _phase++;
-            else {
-                ROS_ERROR("Failed fourth phase");
-                _phase = TARGET_UNREACHABLE;
-            }
-
-            ROS_INFO("Commencing phase %d",_phase);
-        }
-    }
+    if (_dist_to_target < _min_dist_to_succeed())
+        _phase++;
     else {
-        _wait_for_turn_done = true;
-        _turn_done = false;
-
-        if (std::abs(RAD2DEG(_angle_to_target)) > 2.0)
-            turn(-_angle_to_target);
-        else
-        {
-            _turn_done = true;
-        }
+        ROS_ERROR("Failed fourth phase");
+        _phase = TARGET_UNREACHABLE;
     }
+
+//    if (_wait_for_turn_done) {
+//        if (_turn_done) {
+//            _wait_for_turn_done = false;
+//            _turn_done = false;
+//            if (_dist_to_target < _min_dist_to_succeed())
+//                _phase++;
+//            else {
+//                ROS_ERROR("Failed fourth phase");
+//                _phase = TARGET_UNREACHABLE;
+//            }
+//            ROS_INFO("Commencing phase %d",_phase);
+//        }
+//    }
+//    else {
+//        _wait_for_turn_done = true;
+//        _turn_done = false;
+
+//        if (std::abs(RAD2DEG(_angle_to_target)) > 2.0)
+//            turn(-_angle_to_target);
+//        else
+//        {
+//            _turn_done = true;
+//        }
+//    }
 }
 
 
